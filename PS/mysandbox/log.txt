@@ -1,0 +1,24 @@
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+--	Sun Dec 28 16:08:53 2025	--
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+[1][Creating Server]
+ start to creating server...
+
+[2-5][Check: is Port Open]__
+ creating client...
+ client created!
+ checking if the door is open...
+ the port 3000 is not open: connection refused.
+
+[6][Creating Server]
+ server Create!
+
+[7-8][Running server]__
+ initializing Server.
+ Creating a Server Bind with luasocket.
+
+[9][Running server]
+ server open in localhost:3000
+
