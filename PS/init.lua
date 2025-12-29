@@ -16,6 +16,7 @@ local socket = require("socket")
 local ssl = require("ssl")
 local checks = require("PS.ServerChecks")
 local PSHttp = require("PS.http")
+local JSON = require("cjson.safe")
 
 -------------------------
 ---interfaces definitions
@@ -53,14 +54,14 @@ local PSHttp = require("PS.http")
 --- utils 
 
 ---@type table<number, boolean>
-    local oneLoadLog={}
-    local function OneloadMsg(id, msg)
-        local RS = log.inSection("Runtime Server")
-        if not oneLoadLog[id] then 
-            RS.debug(msg)
-            oneLoadLog[id]=true
-        end
+local oneLoadLog={}
+local function OneloadMsg(id, msg)
+    local RS = log.inSection("Runtime Server")
+    if not oneLoadLog[id] then 
+        RS.debug(msg)
+        oneLoadLog[id]=true
     end
+end
 
 ---------
 ---module
@@ -78,7 +79,7 @@ function PudimServer:CreateServer(Config)
     local Address = Config.Address or "localhost"
     local Port = tonumber(Config.Port) or 8080
     local Usehttps = Config.UseHttps or false
-    local SSLConfig = Config.SSLConfig or {}
+    local SSLConfig = Config.SSLConfig 
     
     local used = checks.is_Port_Open(Address, Port)
     if used then CS(("port %s is busy."):format(Port)) end
@@ -109,13 +110,45 @@ function PudimServer:CreateServer(Config)
     return Server
 end
 
+local function readRequest(client)
+    local buffer = ""
+
+    -- lê headers
+    while true do
+        local line, err = client:receive("*l")
+        if not line then return nil end
+        if line == "" then break end
+        buffer = buffer .. line .. "\r\n"
+    end
+
+    -- lê body
+    local len = buffer:match("Content%-Length:%s*(%d+)")
+    if len then
+        local body = client:receive(tonumber(len))
+        buffer = buffer .. "\r\n" .. body
+    end
+
+    return buffer
+end
+
+local function sendResponse(client, res)
+  client:sendResponse(PSHttp:request(res.status, res.body, res.headers))
+end
+
 function PudimServer:handler(client)
     local RS = log.inSection("Runtime Server")
     client:settimeout(1)
-    local raw = client:receive("*a")
-    if not raw then return end
-
-    local req = PSHttp:Parse(raw)
+    local raw = readRequest(client)
+    print(raw)
+    if not raw then 
+      sendResponse(client, {
+        status=404, 
+        body={
+          msg="aa"
+        }
+      })
+      return 
+    end
     local route = self:dispatch(req)
 
     if not route then
@@ -137,7 +170,8 @@ end
 
 
 local function transformInHttps(client, configSSL)
-    local opts = configSSL.options or configSSL.opitions or {"all","no_sslv2","no_sslv3"}
+  
+    local opts = configSSL.opitions or {"all","no_sslv2","no_sslv3"}
     
     return ssl.wrap(client, {
         mode = configSSL.mode or "server",
@@ -177,11 +211,12 @@ function PudimServer:run()
                 
                 client = transformInHttps(client, self.SSLConfig)
                 if client then
-                    client:dohandshake()
+                    assert(client:dohandshake())
                 end
             end
             
             if client then
+                RS.debug("detected client")
                 self:handler(client)
                 client:close()
             end

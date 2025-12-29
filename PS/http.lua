@@ -1,5 +1,6 @@
 
 if not _G.log then _G.log = require("loglua") end
+if not _G.cjson then _G.cjson = require("cjson.safe") end
 
 local http = {}
 http.__index = http
@@ -35,19 +36,28 @@ function http:Parse(raw)
         body = body .. lines[i] .. "\n"
         i = i + 1
     end
-
-    return {
+    
+    
+    local resp =  {
         method = method,
         path = path,
         version = version,
         headers = headers,
         body = body
     }
+    RP("response: "..tostring(cjson.encode(resp)))
+    return resp
 end
 
 function http:request(status, body, headers)
+    local AR = log.inSection("API Request")
     local headers = headers or {}
-
+    
+    if type(body)=="table" then 
+      headers["Content-Type"] = "application/json"
+      body = cjson.encode(body)
+    end
+    
     local body = body or ""
     headers["Content-Length"] = #body
 
@@ -64,6 +74,8 @@ function http:request(status, body, headers)
     end
 
     buffer = buffer .. body
+    
+    AR.debug("Request: "..buffer)
     return buffer
 end
 
