@@ -1,15 +1,21 @@
 --- Important: this file must be executed in Root Project. "lua ./PS/mysandbox/test.lua"
 
-local PS = assert(require("PS"), "PSA Fails to load")
+local scriptDir = debug.getinfo(1, "S").source:match("@(.*/)") or "./"
+
+package.path = 
+  scriptDir .. "../../?.lua;" ..
+  scriptDir .. "../../init.lua;" ..
+  scriptDir .. "../../?/init.lua;" ..
+  package.path
+
+local PS = require("PS.init")
 
 log.activateDebugMode()
 log.live()
+if not PS then log("not find PudimServer") end
 
-local serverTest = PS:CreateServer({
-    Address = "localhost",
-    Port = 3000,
-    UseHttps = false
-})
+
+local serverTest = PS:create({Port = 3000})
 
 
 serverTest:run()
