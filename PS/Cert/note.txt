@@ -1,0 +1,2 @@
+
+Generate a certificate and a key using openssl and place them here with the names "server.crt" and "server.key".

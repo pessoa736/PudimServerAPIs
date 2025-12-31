@@ -2,7 +2,6 @@ local scriptDir = debug.getinfo(1, "S").source:match("@(.*/)") or "./"
 
 if not _G.log then _G.log = require("loglua") end
 
-
 --- imports
 local socket = require("socket")  
 local ssl = require("ssl")            
@@ -10,7 +9,6 @@ local openssl = require("openssl")
 local json = require("cjson.safe")
 local http = require("PS.http")
 local utils = require("PS.utils")
-
 
 
 --- interfaces
@@ -41,14 +39,8 @@ function PudimServer:create(config)
   local useSSL = config.useSSL
   if useSSL==nil then useSSL = true end
 
-  local SSLConfig = config.SSLConfig
+  local SSLConfig = config.SSLConfig or {}
   local ServerSocket = socket.bind(Address, Port)
-
-  if useSSL and (not SSLConfig or not SSLConfig.certificate or not SSLConfig.key) then 
-    if utils:checkFilesExist(scriptDir .. "./Cert/server.key")  then 
-      SSLConfig.key =  ---- 
-    end
-  end
   
   local Server = {
     ServiceName = ServiceName,
@@ -65,30 +57,33 @@ end
 
 
 
-local function GetClientSSL(Server, params)
+local function GetClient(Server, conf)
   local client = Server:accept()
   if not client then return {}, false, "not found client" end
   
+  if type(conf)~="table" then
+    if not conf then conf = {} else
+      return {}, false, "invalid config" 
+    end
+    
+  end
+
   local params = {
-    mode        = params.mode or "server",
-    protocol    = params.protocol or"tlsv1_2",
-    key         = params.Key,
-    certificate = params.Cert,
-    verify      = params.verify or "peer",      
-    options     = params.options or "all"
+    mode        = conf["mode"] or "server",
+    protocol    = conf["protocol"] or"tlsv1_2",
+    key         = conf["Key"] or (scriptDir.."Cert/server.key"),
+    certificate = conf["Cert"] or (scriptDir.."Cert/server.crt"),
+    verify      = conf["verify"] or "peer",      
+    options     = conf["options"] or "all"
   }
-  
-  local tsl = ssl.wrap(client, params)
+
+  ---utils:loadMessageOnChange(2, json.encode(params), (log.inSection("params config")).debug)
+
+  client:settimeout(10)
+  local tsl = assert(ssl.wrap(client, params))
   if not tsl then return {}, false, "it was not possible use wrap ssl" end
   
   return tsl, true, "success to get the client"
-end
-
-local function GetClient(Server)
-  local client = Server:accept()
-  if not client then return {}, false, "not found client" end
-  
-  return client, true, "success to get the client without SSL"
 end
 
 
@@ -101,12 +96,12 @@ end
 
 function PudimServer:run()
   local server = self.ServerSocket 
-  server:settimeout(0)
+  server:settimeout(nil)
   HeaderLog(self)
   
   while server do
 
-    local client, ok, msg = (self.useSSL and GetClientSSL or GetClient)(server)
+    local client, ok, msg = GetClient(server)
     utils:loadMessageOnChange(1, msg, log)
     
     if ok then

@@ -14,7 +14,15 @@ end
 
 function utils:checkFilesExist(file)
     local f<close> = io.open(file, "r")
-    return type(f)=="string" and f~=nil
+    if f then return true end
+    return false
+end
+
+
+function utils:getContentFile(file)
+    local f<close> = assert(io.open(file, "r"), "file not exist")
+    local content = f:read("*a")
+    return content
 end
 
 return utils
