@@ -8,7 +8,7 @@ package.path =
   scriptDir .. "../../?/init.lua;" ..
   package.path
 
-local PS = require("PS.init")
+local PS = require("PS")
 
 log.activateDebugMode()
 log.live()
