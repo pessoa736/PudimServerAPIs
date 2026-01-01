@@ -25,4 +25,8 @@ function utils:getContentFile(file)
     return content
 end
 
+function utils:mkdir(path)
+  os.execute("mkdir -p " .. path)
+end
+
 return utils

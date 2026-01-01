@@ -9,6 +9,7 @@ local openssl = require("openssl")
 local json = require("cjson.safe")
 local http = require("PS.http")
 local utils = require("PS.utils")
+local TSL = require("PS.TSL")
 
 
 --- interfaces
@@ -37,7 +38,6 @@ function PudimServer:create(config)
   local Port = config.Port or 8080
   
   local useSSL = config.useSSL
-  if useSSL==nil then useSSL = true end
 
   local SSLConfig = config.SSLConfig or {}
   local ServerSocket = socket.bind(Address, Port)
@@ -47,8 +47,7 @@ function PudimServer:create(config)
     Port = Port,
     Address = Address,
     ServerSocket = ServerSocket,
-    SSLConfig = SSLConfig,
-    useSSL = useSSL,
+    SSLConfig = SSLConfig
   }
 
   log.debug("Server created")
@@ -68,15 +67,17 @@ local function GetClient(Server, conf)
     
   end
 
+  local pathkey, pathcrt = TSL:ensure(scriptDir)
+  
   local params = {
     mode        = conf["mode"] or "server",
     protocol    = conf["protocol"] or"tlsv1_2",
-    key         = conf["Key"] or (scriptDir.."Cert/server.key"),
-    certificate = conf["Cert"] or (scriptDir.."Cert/server.crt"),
+    key         = pathkey,
+    certificate = pathcrt,
     verify      = conf["verify"] or "peer",      
     options     = conf["options"] or "all"
   }
-
+  
   ---utils:loadMessageOnChange(2, json.encode(params), (log.inSection("params config")).debug)
 
   client:settimeout(10)
@@ -100,24 +101,21 @@ function PudimServer:run()
   HeaderLog(self)
   
   while server do
-
     local client, ok, msg = GetClient(server)
     utils:loadMessageOnChange(1, msg, log)
     
     if ok then
-      if self.useSSL then
-        client:dohandshake()
-        
-        local cert = client:getpeercertificate()
-        if cert then
-          local der = cert:export("DER")
-          local digest = openssl.digest.get("sha256")
-          local hash = digest:digest(der)
-        end
+      client:dohandshake()
+      
+      local cert = client:getpeercertificate()
+      if cert then
+        local der = cert:export("DER")
+        local digest = openssl.digest.get("sha256")
+        local hash = digest:digest(der)
       end
 
-      client:send(http:request(200, {msg="client get request"}))
-      client:close()
+    client:send(http:request(200, {msg="client get request"}))
+    client:close()
     end
   end
 end
