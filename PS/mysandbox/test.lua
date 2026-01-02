@@ -9,13 +9,31 @@ package.path =
   package.path
 
 local PS = require("PS")
+local http = require("PS.http")
 
 log.activateDebugMode()
 log.live()
 if not PS then log("not find PudimServer") end
 
 
-local serverTest = PS:create({Port = 3000})
+local serverTest = PS:create({})
+
+serverTest:Routes("/", 
+  function (req, res)
+    if req.method == "GET" then
+      return res:request(
+        200, [[
+        <html>
+          <body>
+            <h1>PudimServer is Running</h1>
+          </body>
+        </html>
+      ]], 
+      {["Content-Type"] = "text/html"}
+      )
+    end
+  end
+)
 
 
 serverTest:run()
