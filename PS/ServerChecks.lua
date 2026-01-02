@@ -1,5 +1,22 @@
 if not _G.log then _G.log = require("loglua") end
 local socket = require("socket")
+local utils = require("PS.utils")
+
+
+--- interfaces
+
+---@class PortCheckParams
+---@field Address string Endereço a verificar
+---@field Port number|string Porta a verificar
+
+local PortCheckParamsInter = utils:createInterface({
+    Address = "string",
+    Port = {"number", "string"}
+})
+
+
+---------
+--- main
 
 local ServerChecks = {}
 ServerChecks.__index = ServerChecks
@@ -10,6 +27,13 @@ ServerChecks.__index = ServerChecks
 ---@return string erro
 function ServerChecks.is_Port_Open(Address, Port)
     local CIPO = log.inSection("Check: is Port Open")
+    
+    utils:verifyTypes(
+        {Address = Address, Port = Port},
+        PortCheckParamsInter,
+        CIPO.error,
+        true
+    )
 
     local res = {isOpen = false, msg = ""}
 
