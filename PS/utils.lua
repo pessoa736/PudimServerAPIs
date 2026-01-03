@@ -5,10 +5,13 @@
 ---@field __IsInterface boolean Indica que é uma interface
 ---@field __fields table<string, string|string[]|Interface> Campos da interface
 
+---@class message
+---@field old string|nil
+
 ---@class Utils
----@field mensagens table<any, {old: any}> Cache de mensagens para loadMessageOnChange
+---@field mensagens message[] Cache de mensagens para loadMessageOnChange
 ---@field __savedTypes Interface[] Interfaces salvas
----@field loadMessageOnChange fun(self: Utils, channel: any, msg: any, printerFunction?: function) Imprime mensagem se mudou
+---@field loadMessageOnChange fun(self: Utils, channel: any, msg: any, printerFunction?: function|table) Imprime mensagem se mudou
 ---@field checkFilesExist fun(self: Utils, file: string): boolean Verifica se arquivo existe
 ---@field getContentFile fun(self: Utils, file: string): string Lê conteúdo do arquivo
 ---@field writeFile fun(self: Utils, file: string, content: string) Escreve conteúdo no arquivo
@@ -54,7 +57,7 @@ end
 
 function utils:writeFile(file, content)
     local f<close> = assert(io.open(file, "w+"))
-    f:write(content)
+    assert(f:write(content))
 end
 
 

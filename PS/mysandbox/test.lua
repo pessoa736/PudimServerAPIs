@@ -21,11 +21,30 @@ local serverTest = PS:create({})
 serverTest:Routes("/", 
   function (req, res)
     if req.method == "GET" then
-      return res:request(
+      return res:response(
         200, [[
         <html>
           <body>
             <h1>PudimServer is Running</h1>
+            <a href="/otherPage"> my other page </a>
+          </body>
+        </html>
+      ]], 
+      {["Content-Type"] = "text/html"}
+      )
+    end
+  end
+)
+
+serverTest:Routes("/otherPage", 
+  function (req, res)
+    if req.method == "GET" then
+      return res:response(
+        200, [[
+        <html>
+          <body>
+            <h1>other page is Running in PudimServer</h1>
+            <a href="/"> back </a>
           </body>
         </html>
       ]], 
