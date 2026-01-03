@@ -6,12 +6,6 @@ local utils = require("PS.utils")
 
 --- interfaces
 
----@class Request
----@field method string Método HTTP (GET, POST, etc)
----@field path string Caminho da requisição
----@field version string Versão do HTTP
----@field headers table<string, string> Headers da requisição
----@field body string Corpo da requisição
 
 local RequestInter = utils:createInterface({
   method = "string",
@@ -21,10 +15,6 @@ local RequestInter = utils:createInterface({
   body = "string"
 })
 
----@class ResponseParams
----@field status number Código de status HTTP
----@field body string|table Corpo da resposta
----@field headers table<string, string>? Headers da resposta
 
 local ResponseParamsInter = utils:createInterface({
   status = "number",
@@ -33,22 +23,34 @@ local ResponseParamsInter = utils:createInterface({
 })
 
 
+
+---@class Request
+---@field method string Método HTTP (GET, POST, etc)
+---@field path string Caminho da requisição
+---@field version string Versão do HTTP
+---@field headers table<string, string> Headers da requisição
+---@field body string Corpo da requisição
+
+
+
+---@class HttpModuler:metatable
+---@field ParseRequest fun(self: HttpModuler, raw: string):Request
+---@field response fun(self: HttpModuler, status: number, body: any, headers?:table ):string
+
+
 ---------
 --- main
 
+
+---@type HttpModuler
 local http = {}
 http.__index = http
 
 
-function http:Parse(raw)
+function http:ParseRequest(raw)
     local RP = log.inSection("Response Parse")
     
-    utils:verifyTypes(
-        {raw = raw},
-        utils:createInterface({raw = "string"}),
-        RP.error,
-        true
-    )
+    utils:verifyTypes(raw,"string",RP.error, true)
     
     local msid = 0 
     local function _msg(msg)
@@ -66,7 +68,7 @@ function http:Parse(raw)
     _msg("lines separated")
 
     local method, path, version = lines[1]:match("(%S+)%s+(%S+)%s+(%S+)")
-    _msg(("get the method: %s; path: %s and version: %s. on the line 1."):format(method, path, version))
+    _msg(("get the method: %s; path: %s and version: %s."):format(method, path, version))
 
     local headers = {}
     local body = ""
@@ -86,19 +88,22 @@ function http:Parse(raw)
         i = i + 1
     end
     
-    
-    local resp =  {
+    ---@type Request
+    local req =  {
         method = method,
         path = path,
         version = version,
         headers = headers,
         body = body
     }
-    _msg("response: "..tostring(cjson.encode(resp)))
-    return resp
+
+    utils:verifyTypes(req, RequestInter, RP.error, true)
+
+    _msg("request: "..tostring(cjson.encode(req)))
+    return req
 end
 
-function http:request(status, body, headers)
+function http:response(status, body, headers)
     local AR = log.inSection("API Request")
     
     utils:verifyTypes(
@@ -110,7 +115,7 @@ function http:request(status, body, headers)
     
     local msid = 0 
     local function _msg(msg)
-        utils:loadMessageOnChange("httpRequest" .. msid, msg, AR.debug) 
+        utils:loadMessageOnChange("httpRequest" .. msid, msg, AR.debug)
         msid = msid + 1
     end
 
