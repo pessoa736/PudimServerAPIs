@@ -33,9 +33,9 @@ local ConfigServerInter = utils:createInterface(
 ---@field Port number Porta do servidor
 ---@field ServerSocket table Socket do servidor
 ---@field _routes table<string, RouteHandler> Tabela de rotas registradas
----@field create fun(self: Server, config: ConfigServer): Server Cria uma nova instância
+---@field Create fun(self: Server, config: ConfigServer?): Server Cria uma nova instância
 ---@field Routes fun(self: Server, path: string, handler: RouteHandler) Registra uma rota
----@field run fun(self: Server) Inicia o servidor
+---@field Run fun(self: Server) Inicia o servidor
 ---@field SetWrapClientFunc fun(self: Server, func: fun(Server: Server):any)
 
 local ServerInter = utils:createInterface({
@@ -92,7 +92,7 @@ function PudimServer:Routes(path, handler)
 end
 
 
-function PudimServer:create(config)
+function PudimServer:Create(config)
   utils:verifyTypes(
     config or {},
     ConfigServerInter,
@@ -105,7 +105,14 @@ function PudimServer:create(config)
   local Port = config.Port or 8080
   local wrap = config.wrapClientFunc or nil
 
-  local ServerSocket = socket.bind(Address, Port)
+  local ServerSocket, err = socket.bind(Address, Port)
+  if not ServerSocket then
+    local msg = ("Failed to bind server on %s:%s (%s). " ..
+      "Use Address='localhost'/'127.0.0.1'/'0.0.0.0' or add '%s' to /etc/hosts pointing to a local IP.")
+      :format(tostring(Address), tostring(Port), tostring(err), tostring(Address))
+    log.error(msg)
+    error(msg, 2)
+  end
   
   local Server = {
     ServiceName = ServiceName,
@@ -212,11 +219,11 @@ end
 
 
 
-function PudimServer:run()
+function PudimServer:Run()
   utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).debug, true)
 
   local server = self.ServerSocket 
-  server:settimeout(nil)
+  if server then server:settimeout(nil) end
   HeaderLog(self)
   
   while server do
