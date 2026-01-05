@@ -8,16 +8,58 @@ package.path =
   scriptDir .. "../../?/init.lua;" ..
   package.path
 
-local PS = require("PS.init")
+local PS = require("PS")
+local http = require("PS.http")
 
 log.activateDebugMode()
 log.live()
 if not PS then log("not find PudimServer") end
 
 
-local serverTest = PS:create({Port = 3000})
+local serverTest = PS:Create{
+  Port = 8080,
+  Address = "localhost",
+  ServiceName = "PudimServerTest",
+  wrapClientFunc = nil
+}
+
+serverTest:Routes("/", 
+  function (req, res)
+    if req.method == "GET" then
+      return res:response(
+        200, [[
+        <html>
+          <body>
+            <h1>PudimServer is Running</h1>
+            <a href="/otherPage"> my other page </a>
+          </body>
+        </html>
+      ]], 
+      {["Content-Type"] = "text/html"}
+      )
+    end
+  end
+)
+
+serverTest:Routes("/otherPage", 
+  function (req, res)
+    if req.method == "GET" then
+      return res:response(
+        200, [[
+        <html>
+          <body>
+            <h1>other page is Running in PudimServer</h1>
+            <a href="/"> back </a>
+          </body>
+        </html>
+      ]], 
+      {["Content-Type"] = "text/html"}
+      )
+    end
+  end
+)
 
 
-serverTest:run()
+serverTest:Run()
 
 log.save("./PS/mysandbox/", "log.txt")
