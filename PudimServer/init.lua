@@ -4,8 +4,8 @@ if not _G.log then _G.log = require("loglua") end
 
 --- imports
 local socket = require("socket")  
-local http = require("PS.http")
-local utils = require("PS.utils")
+local http = require("PudimServer.http")
+local utils = require("PudimServer.utils")
 
 
 --- interfaces

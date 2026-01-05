@@ -1,7 +1,7 @@
 
 if not _G.log then _G.log = require("loglua") end
 if not _G.cjson then _G.cjson = require("cjson.safe") end
-local utils = require("PS.utils")
+local utils = require("PudimServer.utils")
 
 
 --- interfaces

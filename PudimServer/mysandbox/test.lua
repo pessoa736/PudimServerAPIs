@@ -8,8 +8,8 @@ package.path =
   scriptDir .. "../../?/init.lua;" ..
   package.path
 
-local PS = require("PS")
-local http = require("PS.http")
+local PS = require("PudimServer")
+local http = require("PudimServer.http")
 
 log.activateDebugMode()
 log.live()
