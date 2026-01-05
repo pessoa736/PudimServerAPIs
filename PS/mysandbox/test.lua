@@ -16,7 +16,12 @@ log.live()
 if not PS then log("not find PudimServer") end
 
 
-local serverTest = PS:create({})
+local serverTest = PS:Create{
+  Port = 8080,
+  Address = "localhost",
+  ServiceName = "PudimServerTest",
+  wrapClientFunc = nil
+}
 
 serverTest:Routes("/", 
   function (req, res)
@@ -55,6 +60,6 @@ serverTest:Routes("/otherPage",
 )
 
 
-serverTest:run()
+serverTest:Run()
 
 log.save("./PS/mysandbox/", "log.txt")
