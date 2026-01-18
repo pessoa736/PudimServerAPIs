@@ -3,6 +3,7 @@ if not _G.log then _G.log = require("loglua") end
 if not _G.cjson then _G.cjson = require("cjson.safe") end
 local utils = require("PudimServer.utils")
 
+---@diagnostic disable: duplicate-doc-field
 
 --- interfaces
 
@@ -41,7 +42,7 @@ local ResponseParamsInter = utils:createInterface({
 ---------
 --- main
 
-
+---@diagnostic disable: missing-fields
 ---@type HttpModuler
 local http = {}
 http.__index = http

@@ -9,7 +9,7 @@ package.path =
   package.path
 
 local PS = require("PudimServer")
-local http = require("PudimServer.http")
+local utils = require("PudimServer.utils")
 
 log.activateDebugMode()
 log.live()
@@ -20,23 +20,27 @@ local serverTest = PS:Create{
   Port = 8080,
   Address = "localhost",
   ServiceName = "PudimServerTest",
-  wrapClientFunc = nil
+  Middlewares = {}
 }
+
+
 
 serverTest:Routes("/", 
   function (req, res)
     if req.method == "GET" then
-      return res:response(
-        200, [[
-        <html>
-          <body>
-            <h1>PudimServer is Running</h1>
-            <a href="/otherPage"> my other page </a>
-          </body>
-        </html>
-      ]], 
-      {["Content-Type"] = "text/html"}
-      )
+      local HtmlString = utils:getContentFile(scriptDir.."index.html")
+      return res:response(200, HtmlString, {["Content-Type"] = "text/html"})
+    end
+
+  end
+)
+
+
+serverTest:Routes("/main.css", 
+  function (req, res)
+    if req.method == "GET" then
+      local cssString = utils:getContentFile(scriptDir.."/main.css")
+      return res:response(200, cssString, {["Content-Type"] = "text/css"})
     end
   end
 )
@@ -44,17 +48,8 @@ serverTest:Routes("/",
 serverTest:Routes("/otherPage", 
   function (req, res)
     if req.method == "GET" then
-      return res:response(
-        200, [[
-        <html>
-          <body>
-            <h1>other page is Running in PudimServer</h1>
-            <a href="/"> back </a>
-          </body>
-        </html>
-      ]], 
-      {["Content-Type"] = "text/html"}
-      )
+      local otherpage = utils:getContentFile(scriptDir .. "otherPage.html")
+      return res:response(200, otherpage, {["Content-Type"] = "text/html"})
     end
   end
 )
