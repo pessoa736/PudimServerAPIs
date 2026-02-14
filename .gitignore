@@ -47,3 +47,4 @@ luac.out
 /lua
 /lua_modules
 /.luarocks
+.pudimserver_initialized
