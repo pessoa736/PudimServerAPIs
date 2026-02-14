@@ -9,7 +9,8 @@ if not _G.log then _G.log = require("loglua") end
 local socket = require("socket")  
 local http = require("PudimServer.http")
 local utils = require("PudimServer.utils")
-local ssl = require("ssl")
+local cors = require("PudimServer.cors")
+local Pipeline = require("PudimServer.pipeline")
 
 
 
@@ -36,11 +37,15 @@ local ssl = require("ssl")
 ---@class Server : ConfigServer, table, metatable
 ---@field ServerSocket table Socket do servidor
 ---@field _routes table<string, RouteHandler> Tabela de rotas registradas
+---@field _corsConfig table? Config CORS resolvida
 ---@field Create fun(self: Server, config?: ConfigServer): Server Cria uma nova instância
 ---@field Routes fun(self: Server, path: string, handler: RouteHandler) Registra uma rota
 ---@field Run fun(self: Server) Inicia o servidor
 ---@field SetMiddlewares fun(self: Server, Middlewares: Middlewares)
 ---@field RemoveMiddlewares fun(self: Server, NameMiddlewares: string)
+---@field EnableCors fun(self: Server, config?: CorsConfig) Habilita CORS
+---@field UseHandler fun(self: Server, entry: PipelineEntry) Adiciona handler ao pipeline
+---@field RemoveHandler fun(self: Server, name: string) Remove handler do pipeline
 
 ---@class GetClientConfig
 ---@field mode string?
@@ -121,6 +126,21 @@ function PudimServer:Routes(path, handler)
 end
 
 
+function PudimServer:EnableCors(config)
+  self._corsConfig = cors.createConfig(config)
+end
+
+
+function PudimServer:UseHandler(entry)
+  self._pipeline:use(entry)
+end
+
+
+function PudimServer:RemoveHandler(name)
+  return self._pipeline:remove(name)
+end
+
+
 
 
 
@@ -159,6 +179,7 @@ function PudimServer:Create(config)
     Address = Address,
     ServerSocket = ServerSocket,
     _routes = {},
+    _pipeline = Pipeline.new(),
     Middlewares = Middlewares
   }
 
@@ -198,7 +219,7 @@ end
 
 
 
-local function handlerRequest(client, routes)
+local function handlerRequest(client, routes, corsConfig, pipeline)
   local RL = log.inSection("Server response")
   
   if not client or type(client.receive) ~= "function" then
@@ -236,17 +257,33 @@ local function handlerRequest(client, routes)
 
   _msg(("response: %s %s"):format(req.method, req.path))
 
+  -- CORS preflight
+  if corsConfig and req.method == "OPTIONS" then
+    return cors.preflightResponse(corsConfig)
+  end
+
   -- Debug: mostrar rotas registradas
   _msg("rotas registradas: " .. tostring(next(routes) and "tem rotas" or "vazio"))
 
-  local handler = routes[req.path]
-  if handler then
-    local res = http
-    local response = handler(req, res)
-    return response
+  local function routeHandler(req, res)
+    local handler = routes[req.path]
+    if handler then
+      return handler(req, res)
+    end
+    return http:response(404, "Not Found", {["Content-Type"] = "text/plain", ["Connection"] = "close"})
   end
 
-  return http:response(404, "Not Found", {["Content-Type"] = "text/plain", ["Connection"] = "close"})
+  local response = pipeline:execute(req, http, routeHandler)
+
+  -- Injeta headers CORS na resposta
+  if corsConfig and response then
+    local corsHeaders = cors.buildHeaders(corsConfig, req.headers["origin"])
+    for k, v in pairs(corsHeaders) do
+      response = response:gsub("(\r\n\r\n)", "\r\n" .. k .. ": " .. v .. "%1", 1)
+    end
+  end
+
+  return response
 end
 
 
@@ -265,29 +302,6 @@ end
 function PudimServer:Run()
   utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).error, true)
 
-  self:SetMiddlewares{
-      name = "SSL", 
-      Handler = function (Client)
-        local params = {
-          mode = "server",
-          protocol = "tlsv1_3",
-          key = "/etc/certs/serverkey.pem",
-          certificate = "/etc/certs/server.pem",
-          cafile = "/etc/certs/CA.pem",
-          verify = {"peer", "fail_if_no_peer_cert"},
-          options = "all"
-        }
-
-        local Client_ssl = ssl.wrap(Client, params)
-        if Client_ssl then 
-          Client_ssl:dohandshake()
-          return Client_ssl
-        end
-          
-        return Client
-      end
-    }
-
   local server = self.ServerSocket 
   if server then server:settimeout(nil) end
   HeaderLog(self)
@@ -298,7 +312,7 @@ function PudimServer:Run()
     
     if ok then
       client:settimeout(30)
-      local response = handlerRequest(client, self._routes)
+      local response = handlerRequest(client, self._routes, self._corsConfig, self._pipeline)
       
       if response then
         client:send(response)

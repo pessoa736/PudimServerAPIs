@@ -122,12 +122,14 @@ function http:response(status, body, headers)
 
     local headers = headers or {}
     
-    if type(body)=="table" and not headers then 
-      headers["Content-Type"] = "application/json"
+    if type(body) == "table" then
+      if not headers["Content-Type"] then
+        headers["Content-Type"] = "application/json"
+      end
       body = cjson.encode(body)
     end
     
-    local body = body or ""
+    body = body or ""
     headers["Content-Length"] = #body
 
     local statusText = {
