@@ -34,6 +34,11 @@ local utils = {}
 ---------
 --- functions
 
+--- Prints message only when it changes from the previous call on the same channel.
+--- Used to avoid duplicate log messages in loops.
+---@param channel any Channel identifier (string or number)
+---@param msg any Message to print
+---@param printerFunction? function|table Print function or log section table
 function utils:loadMessageOnChange(channel, msg, printerFunction)
     if not self.mensagens then self.mensagens = {} end
 
@@ -45,6 +50,9 @@ function utils:loadMessageOnChange(channel, msg, printerFunction)
     end
 end
 
+--- Checks if a file exists on the filesystem.
+---@param file string File path to check
+---@return boolean exists True if the file exists and is readable
 function utils:checkFilesExist(file)
     local f<close> = io.open(file, "r")
     if f then return true end
@@ -52,12 +60,18 @@ function utils:checkFilesExist(file)
 end
 
 
+--- Reads and returns the entire content of a file.
+---@param file string File path to read
+---@return string content File contents
 function utils:getContentFile(file)
     local f<close> = assert(io.open(file, "r"), "file not exist")
     local content = f:read("*a")
     return content
 end
 
+--- Writes content to a file, creating or overwriting it.
+---@param file string File path to write
+---@param content string Content to write
 function utils:writeFile(file, content)
     local f<close> = assert(io.open(file, "w+"))
     assert(f:write(content))
@@ -86,6 +100,15 @@ function utils:_matches(value, contract)
 end
 
 
+--- Validates a value against a contract (Interface or type string).
+--- Returns (true) on success or (false, errorMessage) on failure.
+--- If printerFunction is provided, prints errors. If _break is true, exits on failure.
+---@param value any Value to validate
+---@param contract any Interface, type string, or table of type strings
+---@param printerFunction? function Error printer function
+---@param _break? boolean Exit process on validation failure
+---@return boolean valid True if value matches contract
+---@return string? error Error message if invalid (only when printerFunction is nil)
 ---@type fun(self: table, value: any, contract: any, printFunction?: function, _break?: boolean): boolean, string?
 function utils:verifyTypes(value, contract, printerFunction, _break)
     if type(contract) ~= "table" or not contract.__IsInterface then
@@ -138,6 +161,11 @@ function utils:verifyTypes(value, contract, printerFunction, _break)
 end
 
 
+--- Creates a runtime type Interface (contract) for use with verifyTypes.
+--- Supports inheritance via the optional extends parameter.
+---@param fields table<string, string|string[]|Interface> Field definitions: field_name = "type" or {"type1", "type2"}
+---@param extends? Interface Parent interface to inherit fields from
+---@return Interface interface The created interface
 function utils:createInterface(fields, extends)
     local int = {
         __IsInterface = true,
@@ -163,6 +191,8 @@ function utils:createInterface(fields, extends)
 end
 
 
+--- Creates a directory (and parents) at the given path.
+---@param path string Directory path to create
 function utils:mkdir(path)
   os.execute("mkdir -p " .. path)
 end

@@ -1,10 +1,10 @@
 rockspec_format = "3.0"
 package = "PudimServer"
-version = "0.1.0-1"
+version = "0.2.0-1"
 
 source = {
    url = "git://github.com/pessoa736/PudimServerAPIs.git",
-   tag = "v0.1.0"
+   tag = "v0.2.0"
 }
 
 description = {
@@ -37,8 +37,7 @@ build = {
       ["PudimServer.ServerChecks"] = "PudimServer/ServerChecks.lua",
       ["PudimServer.cors"] = "PudimServer/cors.lua",
       ["PudimServer.pipeline"] = "PudimServer/pipeline.lua",
-      ["PudimServer.cache"] = "PudimServer/cache.lua",
-      ["PudimServer.help"] = "PudimServer/help.lua"
+      ["PudimServer.cache"] = "PudimServer/cache.lua"
    },
    copy_directories = {}
 }

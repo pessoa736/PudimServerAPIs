@@ -2,28 +2,21 @@
 
 ## Project Overview
 
-PudimServer is a Lua HTTP server library distributed via LuaRocks. It provides a routing system where users create a server instance with `PudimServer:Create{}`, register routes with `:Routes(path, handler)`, and start with `:Run()`. Route handlers receive `(req, res)` and must return `res:response(status, body, headers)`.
+PudimServer is a Lua HTTP server library distributed via LuaRocks. It provides a routing system, CORS support, a request/response pipeline (middleware chain), and in-memory caching. The library includes a built-in help system accessible via `PudimServer.help()`.
 
 ## Dependencies & Runtime
 
 - **Lua >= 5.4** (`.luarc.json` targets Lua 5.5)
 - **LuaRocks** for package management
-- Core deps: `luasocket`, `lua-cjson`, `loglua`, `luasec` (ssl)
+- Core deps: `luasocket`, `lua-cjson`, `loglua`, `luasec` (optional, for SSL)
 
 Install dependencies:
 
 ```sh
 luarocks install luasocket --local
 luarocks install lua-cjson --local
+luarocks install loglua --local
 ```
-
-## Running the Test Server
-
-```sh
-lua ./PudimServer/mysandbox/test.lua
-```
-
-This starts a local server on `localhost:8080` serving HTML/CSS pages from `PudimServer/mysandbox/`.
 
 ## Running Tests
 
@@ -40,29 +33,345 @@ Unit tests use [busted](https://lunarmodules.github.io/busted/). Tests live in `
 ./lua_modules/bin/busted --no-auto-insulate spec/ --filter "ParseRequest"
 ```
 
+**Note:** `--no-auto-insulate` is required because modules share global state (`_G.log`, `_G.cjson`).
+
+## Complete API Reference
+
+### PudimServer (init.lua) — Main Server
+
+```lua
+local PudimServer = require("PudimServer")
+```
+
+#### `PudimServer:Create(config?) → Server`
+
+Creates a new server instance bound to an address and port.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `config.ServiceName` | `string?` | `"Pudim Server"` | Service name for logging |
+| `config.Address` | `string?` | `"localhost"` | Bind address (`"localhost"`, `"127.0.0.1"`, `"0.0.0.0"`) |
+| `config.Port` | `number?` | `8080` | Port number |
+| `config.Middlewares` | `table?` | `{}` | Initial socket-level middlewares |
+
+```lua
+local server = PudimServer:Create{
+  ServiceName = "My API",
+  Address = "0.0.0.0",
+  Port = 3000
+}
+```
+
+#### `Server:Routes(path, handler)`
+
+Registers an HTTP route. Handler receives `(req, res)` and must return `res:response(...)`.
+
+```lua
+server:Routes("/api/users", function(req, res)
+  if req.method == "GET" then
+    return res:response(200, {users = {"Alice", "Bob"}})
+  end
+  return res:response(405, "Method Not Allowed")
+end)
+```
+
+#### `Server:EnableCors(config?)`
+
+Enables CORS. Handles OPTIONS preflight automatically and injects headers.
+
+```lua
+-- Allow all origins
+server:EnableCors()
+
+-- Restricted
+server:EnableCors{
+  AllowOrigins = {"https://mysite.com"},
+  AllowMethods = "GET, POST",
+  AllowCredentials = true
+}
+```
+
+#### `Server:UseHandler(entry)`
+
+Adds a handler to the HTTP-level pipeline. Handlers run before route matching.
+
+```lua
+server:UseHandler{
+  name = "auth",
+  Handler = function(req, res, next)
+    if not req.headers["authorization"] then
+      return res:response(401, "Unauthorized")
+    end
+    return next()  -- continue pipeline
+  end
+}
+```
+
+#### `Server:RemoveHandler(name) → boolean`
+
+Removes a pipeline handler by name.
+
+#### `Server:SetMiddlewares(middleware)`
+
+Adds a socket-level middleware (runs on raw TCP, before HTTP parsing).
+
+```lua
+server:SetMiddlewares{
+  name = "ssl",
+  Handler = function(client)
+    return ssl.wrap(client, sslParams)
+  end
+}
+```
+
+#### `Server:RemoveMiddlewares(name)`
+
+Removes a socket middleware by name.
+
+#### `Server:Run()`
+
+Starts the server (blocks). Place all setup before calling.
+
+#### `PudimServer.help(topic?)`
+
+Shows interactive documentation. Topics: `"create"`, `"routes"`, `"run"`, `"response"`, `"cors"`, `"pipeline"`, `"cache"`, `"middlewares"`, `"types"`, `"modules"`.
+
+#### `PudimServer.version() → string`
+
+Returns the version string (e.g. `"0.2.0"`).
+
+### PudimServer.http (http.lua) — HTTP Parsing & Response
+
+```lua
+local http = require("PudimServer.http")
+```
+
+#### `http:ParseRequest(raw) → Request`
+
+Parses raw HTTP string into `{method, path, version, headers, body}`.
+
+#### `http:response(status, body, headers?) → string`
+
+Builds HTTP response string. Tables as body auto-encode to JSON.
+
+```lua
+-- Plain text
+http:response(200, "Hello!")
+
+-- JSON auto-encoding
+http:response(200, {name = "Pudim"})
+
+-- Custom headers
+http:response(200, "<h1>Hi</h1>", {["Content-Type"] = "text/html"})
+```
+
+### Request Object
+
+| Field | Type | Description |
+|---|---|---|
+| `method` | `string` | HTTP method (GET, POST, PUT, DELETE, etc) |
+| `path` | `string` | Request path (e.g. "/api/users") |
+| `version` | `string` | HTTP version (e.g. "HTTP/1.1") |
+| `headers` | `table<string,string>` | Request headers (keys are lowercase) |
+| `body` | `string` | Request body |
+
+### PudimServer.cors (cors.lua) — CORS Support
+
+```lua
+local cors = require("PudimServer.cors")
+```
+
+#### `cors.createConfig(config?) → table`
+
+Creates resolved CORS config with defaults.
+
+#### `cors.buildHeaders(config, requestOrigin?) → table`
+
+Builds CORS response headers from resolved config.
+
+#### `cors.preflightResponse(config) → string`
+
+Returns 204 HTTP response for OPTIONS preflight.
+
+**CorsConfig options:**
+
+| Field | Type | Default |
+|---|---|---|
+| `AllowOrigins` | `string\|string[]` | `"*"` |
+| `AllowMethods` | `string\|string[]` | `"GET, POST, PUT, DELETE, PATCH, OPTIONS"` |
+| `AllowHeaders` | `string\|string[]` | `"Content-Type, Authorization"` |
+| `ExposeHeaders` | `string\|string[]` | `""` |
+| `AllowCredentials` | `boolean` | `false` |
+| `MaxAge` | `number` | `86400` |
+
+### PudimServer.pipeline (pipeline.lua) — Request Pipeline
+
+```lua
+local Pipeline = require("PudimServer.pipeline")
+```
+
+#### `Pipeline.new() → Pipeline`
+
+Creates new pipeline.
+
+#### `Pipeline:use(entry)`
+
+Adds handler. Entry: `{name = "string", Handler = function(req, res, next) ... end}`.
+
+#### `Pipeline:remove(name) → boolean`
+
+Removes handler by name.
+
+#### `Pipeline:execute(req, res, finalHandler) → string?`
+
+Executes handler chain. Each handler calls `next()` to continue or returns response to short-circuit.
+
+### PudimServer.cache (cache.lua) — Response Cache
+
+```lua
+local Cache = require("PudimServer.cache")
+```
+
+#### `Cache.new(config?) → Cache`
+
+Creates cache. Options: `MaxSize` (default 100), `DefaultTTL` (default 60s).
+
+#### `Cache:get(key) → string?`
+
+Get cached response (nil if expired/missing).
+
+#### `Cache:set(key, response, ttl?)`
+
+Store response with optional TTL.
+
+#### `Cache:invalidate(key)`
+
+Remove single entry.
+
+#### `Cache:clear()`
+
+Remove all entries.
+
+#### `Cache.createPipelineHandler(cache, ttl?) → PipelineEntry`
+
+Returns pipeline handler that caches GET responses. Key format: `"GET:/path"`.
+
+```lua
+local cache = Cache.new{ MaxSize = 50, DefaultTTL = 30 }
+server:UseHandler(Cache.createPipelineHandler(cache))
+```
+
+### PudimServer.utils (utils.lua) — Utilities
+
+```lua
+local utils = require("PudimServer.utils")
+```
+
+#### `utils:createInterface(fields, extends?) → Interface`
+
+Creates runtime type contract. Fields map names to type strings or arrays of types.
+
+```lua
+local UserInter = utils:createInterface{
+  name = "string",
+  age = "number",
+  email = {"string", "nil"}  -- optional
+}
+```
+
+#### `utils:verifyTypes(value, contract, printerFn?, break?) → boolean, string?`
+
+Validates value against interface. Returns `(true)` or `(false, errorMsg)`.
+
+#### `utils:loadMessageOnChange(channel, msg, printerFn)`
+
+Prints message only when changed from last call on same channel.
+
+#### `utils:checkFilesExist(file) → boolean`
+
+#### `utils:getContentFile(file) → string`
+
+#### `utils:writeFile(file, content)`
+
+#### `utils:mkdir(path)`
+
+### PudimServer.ServerChecks (ServerChecks.lua)
+
+#### `ServerChecks.is_Port_Open(address, port) → boolean, string`
+
+Checks if TCP port is open.
+
+### PudimServer.help (help.lua) — Help System
+
+#### `help.show(topic?)`
+
+Shows help documentation. Without args shows overview; with topic shows details.
+
+#### `help.welcome() → boolean`
+
+Shows first-run welcome message. Creates `.pudimserver_initialized` flag file. Returns true if first run.
+
+#### `help.version() → string`
+
+Returns version string.
+
+#### `help.topics() → string[]`
+
+Returns list of available help topic names.
+
 ## Architecture
 
-The library entry point is `PudimServer/init.lua`, which exports the `PudimServer` table (used as a class via metatables). Key modules:
+### Module Dependency Graph
 
-- **`init.lua`** — Server lifecycle: `Create`, `Routes`, `Run`, `SetMiddlewares`, `RemoveMiddlewares`. `Run()` enters an infinite accept loop with middleware pipeline.
-- **`http.lua`** — HTTP parsing (`ParseRequest`) and response building (`response`). Tables passed as body are auto-encoded to JSON via `cjson`.
-- **`utils.lua`** — Shared utilities: file I/O, runtime type-checking system (`createInterface`/`verifyTypes`), and `loadMessageOnChange` for deduplicated logging.
-- **`cors.lua`** — CORS helpers: `createConfig`, `buildHeaders`, `preflightResponse`. Enabled via `Server:EnableCors(config)`.
-- **`pipeline.lua`** — Request/response pipeline (middleware chain at HTTP level). Handlers receive `(req, res, next)` and call `next()` to continue or return early to short-circuit.
-- **`cache.lua`** — In-memory response cache with TTL and eviction. Provides `Cache.new(config)` and `Cache.createPipelineHandler(cache)` for pipeline integration.
-- **`ServerChecks.lua`** — Network utilities (port-open check via TCP connect).
+```
+init.lua ──→ http.lua
+         ──→ cors.lua ──→ http.lua
+         ──→ pipeline.lua
+         ──→ help.lua
+         ──→ utils.lua
+         ──→ socket (luasocket)
+
+http.lua ──→ utils.lua
+         ──→ cjson (lua-cjson)
+
+cache.lua ──→ utils.lua
+          ──→ socket (luasocket)
+
+ServerChecks.lua ──→ utils.lua
+                 ──→ socket (luasocket)
+```
+
+### Request Flow in Server:Run()
+
+1. `socket:accept()` → raw TCP client
+2. Socket middlewares run sequentially (`SetMiddlewares`)
+3. `client:receive()` → raw HTTP data
+4. `http:ParseRequest(raw)` → `Request` object
+5. CORS preflight check → 204 if OPTIONS
+6. `pipeline:execute(req, res, routeHandler)` → runs pipeline handlers, then route
+7. CORS header injection into response
+8. `client:send(response)` → send to client
 
 ### Runtime Type System
 
-The codebase uses a custom interface/contract system instead of relying solely on Lua's dynamic typing. Interfaces are created with `utils:createInterface{field = "type"}` and validated with `utils:verifyTypes(value, interface, logFn, shouldExit)`. This pattern is used extensively — new code should follow it.
+All public functions validate parameters using `utils:createInterface` + `utils:verifyTypes`. New code **must** follow this pattern:
 
-### Middleware Pipeline
+```lua
+local MyInterface = utils:createInterface{
+  fieldName = "string",
+  optionalField = {"number", "nil"}
+}
 
-Middlewares are registered via `Server:SetMiddlewares{name = "...", Handler = function(client) ... end}` and run sequentially in `GetClient()` on each accepted connection. The `Run()` method currently auto-registers an SSL middleware.
+function myModule:myFunction(params)
+  utils:verifyTypes(params, MyInterface, log.error, true)
+  -- ...
+end
+```
 
-### Logging
+### Globals
 
-All logging uses the `loglua` library via the global `_G.log`. Modules use `log.inSection("name")` for scoped loggers and `utils:loadMessageOnChange()` to avoid duplicate log messages.
+- `_G.log` — `loglua` logger (auto-initialized on first `require`)
+- `_G.cjson` — `cjson.safe` (auto-initialized on first `require`)
 
 ## Code Conventions
 
@@ -70,13 +379,12 @@ All logging uses the `loglua` library via the global `_G.log`. Modules use `log.
 - **Naming:** `camelCase` for variables/functions, `PascalCase` for classes/modules
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - **PR target:** Always target the `dev` branch
-- **LuaDoc annotations:** Use `---@class`, `---@field`, `---@type`, `---@param` annotations for type hints
+- **LuaDoc annotations:** Use `---@class`, `---@field`, `---@type`, `---@param`, `---@return` annotations
 - **Comments:** Portuguese or English are both acceptable
-- **Globals:** `_G.log` and `_G.cjson` are initialized on first require and expected to be available globally
+- **Type validation:** All public API functions must validate inputs with `utils:verifyTypes`
+- **Logging:** Use `log.inSection("name")` for scoped loggers
 
 ## LuaRocks Module Map
-
-The rockspec at `rockspecs/pudimserver-0.1.0-1.rockspec` maps module names to files:
 
 ```
 PudimServer              → PudimServer/init.lua
@@ -85,7 +393,62 @@ PudimServer.utils        → PudimServer/utils.lua
 PudimServer.cors         → PudimServer/cors.lua
 PudimServer.pipeline     → PudimServer/pipeline.lua
 PudimServer.cache        → PudimServer/cache.lua
+PudimServer.help         → PudimServer/help.lua
 PudimServer.ServerChecks → PudimServer/ServerChecks.lua
 ```
 
-New modules must be added to both the `modules` table in the rockspec and follow the `PudimServer/` directory structure.
+New modules must be added to the `modules` table in the rockspec.
+
+## Common Patterns
+
+### Creating a basic server
+
+```lua
+local PudimServer = require("PudimServer")
+
+local server = PudimServer:Create{ Port = 8080 }
+
+server:Routes("/", function(req, res)
+  return res:response(200, "Hello World!")
+end)
+
+server:Run()
+```
+
+### Adding CORS + Pipeline + Cache
+
+```lua
+local PudimServer = require("PudimServer")
+local Cache = require("PudimServer.cache")
+
+local server = PudimServer:Create{ Port = 8080 }
+server:EnableCors()
+
+-- Pipeline: logging middleware
+server:UseHandler{
+  name = "logger",
+  Handler = function(req, res, next)
+    print(req.method .. " " .. req.path)
+    return next()
+  end
+}
+
+-- Cache GET responses for 30 seconds
+local cache = Cache.new{ DefaultTTL = 30 }
+server:UseHandler(Cache.createPipelineHandler(cache))
+
+server:Routes("/api/data", function(req, res)
+  return res:response(200, {timestamp = os.time()})
+end)
+
+server:Run()
+```
+
+### Getting help
+
+```lua
+local PudimServer = require("PudimServer")
+PudimServer.help()           -- overview
+PudimServer.help("cors")     -- CORS topic
+PudimServer.help("pipeline") -- Pipeline topic
+```

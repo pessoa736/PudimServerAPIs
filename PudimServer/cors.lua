@@ -46,6 +46,9 @@ end
 ---@param config? CorsConfig
 ---@return table corsHeaders Headers CORS resolvidos
 ---@return CorsConfig resolvedConfig Config com defaults aplicados
+--- Creates a resolved CORS configuration with defaults applied.
+---@param config? CorsConfig Raw CORS configuration
+---@return table resolvedConfig Config with all defaults filled in
 function cors.createConfig(config)
   local CL = log.inSection("CORS")
 
@@ -65,9 +68,10 @@ function cors.createConfig(config)
 end
 
 
----@param config table Config resolvida do CORS
----@param requestOrigin string? Origin do request
----@return table headers Headers CORS para adicionar na resposta
+--- Builds CORS response headers from a resolved config.
+---@param config table Resolved CORS config (from createConfig)
+---@param requestOrigin? string Origin header from the request
+---@return table<string, string> headers CORS headers to add to the response
 function cors.buildHeaders(config, requestOrigin)
   local headers = {}
 
@@ -89,8 +93,9 @@ function cors.buildHeaders(config, requestOrigin)
 end
 
 
----@param config table Config resolvida do CORS
----@return string Resposta HTTP para preflight
+--- Returns a 204 No Content HTTP response for CORS preflight (OPTIONS) requests.
+---@param config table Resolved CORS config (from createConfig)
+---@return string response HTTP response string for preflight
 function cors.preflightResponse(config)
   local http = require("PudimServer.http")
   local headers = cors.buildHeaders(config)

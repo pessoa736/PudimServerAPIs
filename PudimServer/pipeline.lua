@@ -27,7 +27,8 @@ local Pipeline = {}
 Pipeline.__index = Pipeline
 
 
----@return Pipeline
+--- Creates a new empty Pipeline instance.
+---@return Pipeline pipeline New pipeline ready to register handlers
 function Pipeline.new()
   local self = setmetatable({}, Pipeline)
   self._handlers = {}
@@ -35,7 +36,8 @@ function Pipeline.new()
 end
 
 
----@param entry PipelineEntry
+--- Adds a handler to the pipeline. Handlers execute in insertion order.
+---@param entry PipelineEntry Handler entry with name (string) and Handler (function)
 function Pipeline:use(entry)
   local PL = log.inSection("Pipeline")
   utils:verifyTypes(entry, PipelineEntryInter, PL.error, true)
@@ -43,7 +45,9 @@ function Pipeline:use(entry)
 end
 
 
----@param name string
+--- Removes a handler from the pipeline by name.
+---@param name string Name of the handler to remove
+---@return boolean removed True if handler was found and removed
 function Pipeline:remove(name)
   for i = #self._handlers, 1, -1 do
     if self._handlers[i].name == name then
@@ -55,10 +59,13 @@ function Pipeline:remove(name)
 end
 
 
----@param req Request
----@param res HttpModuler
----@param finalHandler fun(req: Request, res: HttpModuler): string?
----@return string?
+--- Executes the pipeline chain, calling each handler in order.
+--- Each handler receives (req, res, next) and must call next() to continue.
+--- The finalHandler runs after all pipeline handlers complete.
+---@param req Request The HTTP request object
+---@param res HttpModuler The HTTP response builder
+---@param finalHandler fun(req: Request, res: HttpModuler): string? The route handler
+---@return string? response The HTTP response string or nil
 function Pipeline:execute(req, res, finalHandler)
   local PL = log.inSection("Pipeline")
   local handlers = self._handlers
