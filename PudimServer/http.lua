@@ -48,6 +48,9 @@ local http = {}
 http.__index = http
 
 
+--- Parses a raw HTTP request string into a structured Request object.
+---@param raw string Raw HTTP request data
+---@return Request req Parsed request with method, path, version, headers, body
 function http:ParseRequest(raw)
     local RP = log.inSection("Response Parse")
     
@@ -104,6 +107,12 @@ function http:ParseRequest(raw)
     return req
 end
 
+--- Builds an HTTP response string.
+--- Tables passed as body are automatically encoded to JSON with Content-Type application/json.
+---@param status number HTTP status code (200, 404, 500, etc)
+---@param body string|table Response body (tables auto-encode to JSON)
+---@param headers? table<string, string> Custom response headers
+---@return string response Raw HTTP response string ready to send
 function http:response(status, body, headers)
     local AR = log.inSection("API Request")
     

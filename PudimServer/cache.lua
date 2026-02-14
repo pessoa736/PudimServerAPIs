@@ -33,8 +33,9 @@ local Cache = {}
 Cache.__index = Cache
 
 
----@param config? CacheConfig
----@return Cache
+--- Creates a new Cache instance with optional configuration.
+---@param config? CacheConfig Cache configuration (MaxSize, DefaultTTL)
+---@return Cache cache New cache instance
 function Cache.new(config)
   local CL = log.inSection("Cache")
 
@@ -50,8 +51,9 @@ function Cache.new(config)
 end
 
 
----@param key string
----@return string? response
+--- Retrieves a cached response by key. Returns nil if expired or not found.
+---@param key string Cache key (typically "METHOD:path")
+---@return string? response Cached HTTP response or nil
 function Cache:get(key)
   local entry = self._entries[key]
   if not entry then return nil end
@@ -66,9 +68,10 @@ function Cache:get(key)
 end
 
 
----@param key string
----@param response string
----@param ttl? number TTL em segundos (usa default se nil)
+--- Stores a response in the cache. Evicts oldest entry if cache is full.
+---@param key string Cache key (typically "METHOD:path")
+---@param response string HTTP response string to cache
+---@param ttl? number TTL in seconds (uses DefaultTTL if nil)
 function Cache:set(key, response, ttl)
   if not self._entries[key] then
     -- Evict oldest if full
@@ -85,7 +88,8 @@ function Cache:set(key, response, ttl)
 end
 
 
----@param key string
+--- Removes a single entry from the cache.
+---@param key string Cache key to invalidate
 function Cache:invalidate(key)
   if self._entries[key] then
     self._entries[key] = nil
@@ -94,6 +98,7 @@ function Cache:invalidate(key)
 end
 
 
+--- Removes all entries from the cache.
 function Cache:clear()
   self._entries = {}
   self._size = 0
@@ -118,9 +123,11 @@ function Cache:_evict()
 end
 
 
----@param cacheInstance Cache
----@param ttl? number TTL customizado
----@return PipelineEntry
+--- Creates a PipelineEntry that caches GET responses.
+--- Only caches GET requests. Cache key format: "method:path".
+---@param cacheInstance Cache The cache instance to use
+---@param ttl? number Custom TTL in seconds (uses cache's DefaultTTL if nil)
+---@return PipelineEntry entry Pipeline handler ready for Server:UseHandler()
 function Cache.createPipelineHandler(cacheInstance, ttl)
   return {
     name = "cache",

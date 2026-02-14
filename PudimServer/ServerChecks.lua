@@ -24,10 +24,11 @@ local PortCheckParamsInter = utils:createInterface({
 local ServerChecks = {}
 ServerChecks.__index = ServerChecks
 
----@param Address string
----@param Port number|string
----@return boolean is_open
----@return string erro
+--- Checks if a TCP port is open on the given address.
+---@param Address string Host address to check
+---@param Port number|string Port number to check
+---@return boolean is_open True if the port is accepting connections
+---@return string message Description of the result
 function ServerChecks.is_Port_Open(Address, Port)
     local CIPO = log.inSection("Check: is Port Open")
     

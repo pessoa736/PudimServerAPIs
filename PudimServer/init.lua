@@ -11,6 +11,7 @@ local http = require("PudimServer.http")
 local utils = require("PudimServer.utils")
 local cors = require("PudimServer.cors")
 local Pipeline = require("PudimServer.pipeline")
+local helpModule = require("PudimServer.help")
 
 
 
@@ -113,7 +114,10 @@ PudimServer.__index = PudimServer
 
 
 
--- Método para registrar rotas na instância
+--- Registers an HTTP route handler for a given path.
+--- Route handlers receive (req, res) and must return res:response(status, body, headers).
+---@param path string URL path (e.g. "/api/users")
+---@param handler RouteHandler Handler function: fun(req: Request, res: HttpModuler): string
 function PudimServer:Routes(path, handler)
   utils:verifyTypes(
     {path = path, handler = handler},
@@ -126,16 +130,25 @@ function PudimServer:Routes(path, handler)
 end
 
 
+--- Enables CORS (Cross-Origin Resource Sharing) support on the server.
+--- Automatically handles OPTIONS preflight requests and injects CORS headers.
+---@param config? CorsConfig CORS configuration (defaults to allow all origins)
 function PudimServer:EnableCors(config)
   self._corsConfig = cors.createConfig(config)
 end
 
 
+--- Adds a handler to the HTTP-level request/response pipeline.
+--- Handlers run in order before the route handler.
+---@param entry PipelineEntry Handler entry with name and Handler function
 function PudimServer:UseHandler(entry)
   self._pipeline:use(entry)
 end
 
 
+--- Removes a pipeline handler by name.
+---@param name string Name of the handler to remove
+---@return boolean removed True if handler was found and removed
 function PudimServer:RemoveHandler(name)
   return self._pipeline:remove(name)
 end
@@ -146,6 +159,10 @@ end
 
 
 
+--- Creates a new PudimServer instance bound to the specified address and port.
+--- The server is ready to register routes and run after creation.
+---@param config? ConfigServer Server configuration
+---@return Server server The new server instance
 function PudimServer:Create(config)
   utils:verifyTypes(
     config or {},
@@ -288,6 +305,9 @@ end
 
 
 
+--- Adds a socket-level middleware that transforms the client connection.
+--- Middlewares run on the raw TCP socket before HTTP parsing.
+---@param Mid Middlewares Middleware with name and Handler function(client) → client
 function PudimServer:SetMiddlewares(Mid)
   local  SML = log.inSection("set Middleware log")
 
@@ -299,6 +319,8 @@ end
 
 
 
+--- Starts the server and enters an infinite accept loop.
+--- Blocks the current thread. Place all setup (Routes, EnableCors, UseHandler) before calling.
 function PudimServer:Run()
   utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).error, true)
 
@@ -322,5 +344,24 @@ function PudimServer:Run()
     end
   end
 end
+
+
+--- Shows help documentation for PudimServer.
+--- Call without arguments for overview, or with a topic name for details.
+---@param topic? string Help topic ("create", "routes", "cors", "pipeline", "cache", etc)
+function PudimServer.help(topic)
+  helpModule.show(topic)
+end
+
+
+--- Returns the PudimServer version string.
+---@return string version
+function PudimServer.version()
+  return helpModule.version()
+end
+
+
+-- Show welcome message on first require in a project
+helpModule.welcome()
 
 return PudimServer
