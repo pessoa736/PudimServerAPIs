@@ -1,42 +1,73 @@
-local scriptDir = debug.getinfo(1, "S").source:match("@(.*/)") or "./"
+---@diagnostic disable: duplicate-doc-field, duplicate-doc-alias
 
-if not _G.log then _G.log = require("loglua") end
 
+
+
+-----------
 --- imports
+if not _G.log then _G.log = require("loglua") end
 local socket = require("socket")  
-local http = require("PS.http")
-local utils = require("PS.utils")
+local http = require("PudimServer.http")
+local utils = require("PudimServer.utils")
+local cors = require("PudimServer.cors")
+local Pipeline = require("PudimServer.pipeline")
 
 
+
+--------------
 --- interfaces
+
+
+---@alias RouteHandler fun(req: Request, res: HttpModuler): string?
+
+
+---@class Middlewares: table
+---@field name string
+---@field Handler fun(Client: any): any
+
+
 
 ---@class ConfigServer
 ---@field ServiceName string? Nome do serviço (default: "Pudim Server")
 ---@field Address string? Endereço do servidor (default: "localhost")
 ---@field Port number? Porta do servidor (default: 8080)
----@field wrapClientFunc (fun(Server: table): table)?
+---@field Middlewares table<any, Middlewares>?
 
-local ConfigServerInter = utils:createInterface(
-  {
+
+---@class Server : ConfigServer, table, metatable
+---@field ServerSocket table Socket do servidor
+---@field _routes table<string, RouteHandler> Tabela de rotas registradas
+---@field _corsConfig table? Config CORS resolvida
+---@field Create fun(self: Server, config?: ConfigServer): Server Cria uma nova instância
+---@field Routes fun(self: Server, path: string, handler: RouteHandler) Registra uma rota
+---@field Run fun(self: Server) Inicia o servidor
+---@field SetMiddlewares fun(self: Server, Middlewares: Middlewares)
+---@field RemoveMiddlewares fun(self: Server, NameMiddlewares: string)
+---@field EnableCors fun(self: Server, config?: CorsConfig) Habilita CORS
+---@field UseHandler fun(self: Server, entry: PipelineEntry) Adiciona handler ao pipeline
+---@field RemoveHandler fun(self: Server, name: string) Remove handler do pipeline
+
+---@class GetClientConfig
+---@field mode string?
+---@field verify string?
+
+---@class RoutesParams
+---@field path string Caminho da rota
+---@field handler function Handler da rota
+
+
+local MiddlewaresInter = utils:createInterface{
+  name = {"string", "number"},
+  Handler = "function"
+}
+
+
+local ConfigServerInter = utils:createInterface{
     ServiceName = {"string", "nil"},
     Address = {"string", "nil"},
     Port = {"number", "nil"},
-    wrapClientFunc = {"function", "nil"}
-  }
-)
-
----@alias RouteHandler fun(req: Request, res: HttpModuler): string?
-
----@class Server : ConfigServer
----@field ServiceName string Nome do serviço
----@field Address string Endereço do servidor
----@field Port number Porta do servidor
----@field ServerSocket table Socket do servidor
----@field _routes table<string, RouteHandler> Tabela de rotas registradas
----@field Create fun(self: Server, config: ConfigServer?): Server Cria uma nova instância
----@field Routes fun(self: Server, path: string, handler: RouteHandler) Registra uma rota
----@field Run fun(self: Server) Inicia o servidor
----@field SetWrapClientFunc fun(self: Server, func: fun(Server: Server):any)
+    clientMiddlewares = "table"
+}
 
 local ServerInter = utils:createInterface({
       create = "function",
@@ -44,27 +75,21 @@ local ServerInter = utils:createInterface({
       Routes = "function",
       ServerSocket = {"table", "userdata"},
       _routes = "table",
+      SetMiddlewares = "function",
+      RemoveMiddlewares = "function",
   },
   ConfigServerInter
 )
 
----@class GetClientConfig
----@field mode string?
----@field verify string?
-
-local GetClientConfigInter = utils:createInterface({
+local GetClientConfigInter = utils:createInterface{
   mode = {"string", "nil"},
   verify = {"string", "nil"}
-})
+}
 
----@class RoutesParams
----@field path string Caminho da rota
----@field handler function Handler da rota
-
-local RoutesParamsInter = utils:createInterface({
+local RoutesParamsInter = utils:createInterface{
   path = "string",
   handler = "function"
-})
+}
 
 local LogChecksTypes = log.inSection("checkTypes").debug
 
@@ -73,11 +98,20 @@ local LogChecksTypes = log.inSection("checkTypes").debug
 
 
 ---------
---- main
+--- MAIN
 
+
+
+
+---@diagnostic disable: missing-fields
 ---@type Server
 local PudimServer = {}
 PudimServer.__index = PudimServer
+
+
+
+
+
 
 -- Método para registrar rotas na instância
 function PudimServer:Routes(path, handler)
@@ -92,6 +126,26 @@ function PudimServer:Routes(path, handler)
 end
 
 
+function PudimServer:EnableCors(config)
+  self._corsConfig = cors.createConfig(config)
+end
+
+
+function PudimServer:UseHandler(entry)
+  self._pipeline:use(entry)
+end
+
+
+function PudimServer:RemoveHandler(name)
+  return self._pipeline:remove(name)
+end
+
+
+
+
+
+
+
 function PudimServer:Create(config)
   utils:verifyTypes(
     config or {},
@@ -103,9 +157,12 @@ function PudimServer:Create(config)
   local ServiceName = config.ServiceName or "Pudim Server"
   local Address = config.Address or "localhost"
   local Port = config.Port or 8080
-  local wrap = config.wrapClientFunc or nil
+  local Middlewares = config.Middlewares or {}
 
+  
+  
   local ServerSocket, err = socket.bind(Address, Port)
+  
   if not ServerSocket then
     local msg = ("Failed to bind server on %s:%s (%s). " ..
       "Use Address='localhost'/'127.0.0.1'/'0.0.0.0' or add '%s' to /etc/hosts pointing to a local IP.")
@@ -114,13 +171,16 @@ function PudimServer:Create(config)
     error(msg, 2)
   end
   
+
+
   local Server = {
     ServiceName = ServiceName,
     Port = Port,
     Address = Address,
     ServerSocket = ServerSocket,
     _routes = {},
-    wrapClientFunc = wrap
+    _pipeline = Pipeline.new(),
+    Middlewares = Middlewares
   }
 
   log.debug("Server created")
@@ -131,17 +191,18 @@ function PudimServer:Create(config)
 end
 
 
----@type fun(Server: table|userdata, wrapClient?: fun(Server: table|userdata):any):table, boolean, string
-local function GetClient(Server, wrapClient)
-  
-  local wrapClient = wrapClient or function ()
-      return Server:accept()
-  end
 
-  local client = wrapClient(Server)
+
+---@type fun(ServerRun: table|userdata, Middlewares: table<any, Middlewares>):table, boolean, string
+local function GetClient(ServerRun, Middlewares)
+  local client = ServerRun:accept()
+  
+  for idx, mw in ipairs(Middlewares) do
+    client = mw.Handler(client)
+  end
+  
   if not client then return {}, false, "not found client" end
   
-  ---utils:loadMessageOnChange(2, json.encode(params), (log.inSection("params config")).debug)
 
   client:settimeout(10)
   return client, true, "Get Client"
@@ -158,7 +219,7 @@ end
 
 
 
-local function handlerRequest(client, routes)
+local function handlerRequest(client, routes, corsConfig, pipeline)
   local RL = log.inSection("Server response")
   
   if not client or type(client.receive) ~= "function" then
@@ -196,43 +257,62 @@ local function handlerRequest(client, routes)
 
   _msg(("response: %s %s"):format(req.method, req.path))
 
+  -- CORS preflight
+  if corsConfig and req.method == "OPTIONS" then
+    return cors.preflightResponse(corsConfig)
+  end
+
   -- Debug: mostrar rotas registradas
   _msg("rotas registradas: " .. tostring(next(routes) and "tem rotas" or "vazio"))
 
-  local handler = routes[req.path]
-  if handler then
-    local res = http
-    local response = handler(req, res)
-    return response
+  local function routeHandler(req, res)
+    local handler = routes[req.path]
+    if handler then
+      return handler(req, res)
+    end
+    return http:response(404, "Not Found", {["Content-Type"] = "text/plain", ["Connection"] = "close"})
   end
 
-  return http:response(404, "Not Found", {["Content-Type"] = "text/plain", ["Connection"] = "close"})
+  local response = pipeline:execute(req, http, routeHandler)
+
+  -- Injeta headers CORS na resposta
+  if corsConfig and response then
+    local corsHeaders = cors.buildHeaders(corsConfig, req.headers["origin"])
+    for k, v in pairs(corsHeaders) do
+      response = response:gsub("(\r\n\r\n)", "\r\n" .. k .. ": " .. v .. "%1", 1)
+    end
+  end
+
+  return response
 end
 
 
 
-function PudimServer:SetWrapClientFunc(func)
-  utils:verifyTypes(func, "function", log.debug, true)
-  self.wrapClientFunc = func
+function PudimServer:SetMiddlewares(Mid)
+  local  SML = log.inSection("set Middleware log")
+
+  utils:verifyTypes(Mid, MiddlewaresInter, SML.error, true)
+  
+  table.insert(self.Middlewares, Mid)
 end
 
 
 
 
 function PudimServer:Run()
-  utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).debug, true)
+  utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).error, true)
 
   local server = self.ServerSocket 
   if server then server:settimeout(nil) end
   HeaderLog(self)
   
   while server do
-    local client, ok, msg = GetClient(server, self.wrapClientFunc)
+    local client, ok, msg = GetClient(server, self.Middlewares)
     utils:loadMessageOnChange(1, msg, log)
     
     if ok then
       client:settimeout(30)
-      local response = handlerRequest(client, self._routes)
+      local response = handlerRequest(client, self._routes, self._corsConfig, self._pipeline)
       
       if response then
         client:send(response)

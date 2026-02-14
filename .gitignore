@@ -43,3 +43,7 @@ luac.out
 
 *.crt
 *.key
+/luarocks
+/lua
+/lua_modules
+/.luarocks

@@ -1,8 +1,9 @@
 
 if not _G.log then _G.log = require("loglua") end
 if not _G.cjson then _G.cjson = require("cjson.safe") end
-local utils = require("PS.utils")
+local utils = require("PudimServer.utils")
 
+---@diagnostic disable: duplicate-doc-field
 
 --- interfaces
 
@@ -41,7 +42,7 @@ local ResponseParamsInter = utils:createInterface({
 ---------
 --- main
 
-
+---@diagnostic disable: missing-fields
 ---@type HttpModuler
 local http = {}
 http.__index = http
@@ -121,12 +122,14 @@ function http:response(status, body, headers)
 
     local headers = headers or {}
     
-    if type(body)=="table" and not headers then 
-      headers["Content-Type"] = "application/json"
+    if type(body) == "table" then
+      if not headers["Content-Type"] then
+        headers["Content-Type"] = "application/json"
+      end
       body = cjson.encode(body)
     end
     
-    local body = body or ""
+    body = body or ""
     headers["Content-Length"] = #body
 
     local statusText = {

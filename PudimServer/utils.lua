@@ -1,3 +1,5 @@
+---@diagnostic disable: duplicate-doc-field
+
 
 --- interfaces
 
@@ -8,7 +10,7 @@
 ---@class message
 ---@field old string|nil
 
----@class Utils
+---@class Utils: table
 ---@field mensagens message[] Cache de mensagens para loadMessageOnChange
 ---@field __savedTypes Interface[] Interfaces salvas
 ---@field loadMessageOnChange fun(self: Utils, channel: any, msg: any, printerFunction?: function|table) Imprime mensagem se mudou
@@ -24,8 +26,9 @@
 ---------
 --- main
 
+---@diagnostic disable: missing-fields
 ---@type Utils
-local utils = {}
+local utils = {} 
 
 
 ---------
