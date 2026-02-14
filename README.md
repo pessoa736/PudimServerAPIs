@@ -18,8 +18,11 @@ Create simple, lightweight and customizable HTTP servers
   - [Starting the Server](#starting-the-server)
   - [Request Object](#request-object)
   - [Response Object](#response-object)
-  - [Customizing the Client Wrapper](#customizing-the-client-wrapper)
+- [CORS](#cors)
+- [Pipeline](#pipeline)
+- [Cache](#cache)
 - [Complete Example](#complete-example)
+- [Examples](#examples)
 - [Roadmap](#roadmap)
 - [License](#license)
 - [Contributing](#contributing)
@@ -35,12 +38,11 @@ This library is being designed based on what [Davi](https://github.com/pessoa736
 - Lua >= 5.4
 - LuaSocket
 - lua-cjson
+- loglua
 
 ## Getting Started
 
 ### Installation
-
-First, to run it we need to install it using LuaRocks:
 
 ```sh
 # Local installation
@@ -52,98 +54,55 @@ sudo luarocks install PudimServer
 
 ### Creating the Server
 
-Now let's create a file for the server called `Server.lua` to import PudimServer and configure it:
-
 ```lua
-local PudimServer = require("PudimServer") -- importing PudimServer
+local PudimServer = require("PudimServer")
 
-local MyServer = PudimServer:Create{
-    ServiceName = "Service Name",     -- self-explanatory, it's the service name.
-    Port = 8080,                      -- port the server will open on.
-    Address = "localhost",            -- or any address mapped by your machine.
-    wrapClientFunc = function(Server) -- for custom client handling, can be nil if not used.
-
-        --- here you can set up the server to use SSL or TLS with additional libs, or whatever you want.
-        local client = Server:accept()
-        return client
-    end
+local server = PudimServer:Create{
+  ServiceName = "My Service",
+  Port = 8080,
+  Address = "localhost"
 }
-
-local MyServer = PudimServer:Create() -- this creates the server with default configuration
 ```
+
+All fields are optional. Defaults: `ServiceName = "Pudim Server"`, `Port = 8080`, `Address = "localhost"`.
 
 ### Creating Routes
 
-Route creation follows something similar to Next.js where you create a function to handle different request types for the route and return responses.
-
-In PudimServer we use the `Routes` function, which receives first the route as a string and then the function that handles the request response.
-
-- HTML page example:
+Route handlers receive `(req, res)` and must return `res:response(status, body, headers)`.
 
 ```lua
-MyServer:Routes(
-    "/", -- route 
-    function (req, res)
-        if req.method == "GET" then -- request type
-            
-            return res:response(
-                200, -- status
-                     -- body
-                [[
-                    <html>
-                        <body>
-                            <h1>MyServer</h1>
-                        </body>
-                    </html>
-                ]], 
-                {   -- headers
-                    ["Content-Type"] = "text/html"
-                }
-            )
-        
-        end
+-- HTML page
+server:Routes("/", function(req, res)
+  if req.method == "GET" then
+    return res:response(200, "<h1>Hello!</h1>", {["Content-Type"] = "text/html"})
+  end
+  return res:response(405, {error = "Method not allowed"})
+end)
 
-        return res:response(400, {msg = "method not valid"}) -- if no response is sent
-    end
-)
-```
+-- JSON API (tables are auto-encoded to JSON)
+server:Routes("/api/users", function(req, res)
+  if req.method == "GET" then
+    return res:response(200, {
+      {id = 1, name = "John"},
+      {id = 2, name = "Mary"}
+    })
+  end
 
-- JSON API example:
+  if req.method == "POST" then
+    return res:response(201, {msg = "User created!", data = req.body})
+  end
 
-```lua
-MyServer:Routes(
-    "/api/users",
-    function (req, res)
-        if req.method == "GET" then
-            local users = {
-                {id = 1, name = "John"},
-                {id = 2, name = "Mary"}
-            }
-            return res:response(200, users) -- tables are automatically converted to JSON
-        end
-
-        if req.method == "POST" then
-            -- process request body
-            local data = req.body
-            return res:response(200, {msg = "User created!", data = data})
-        end
-
-        return res:response(400, {error = "Method not supported"})
-    end
-)
+  return res:response(405, {error = "Method not allowed"})
+end)
 ```
 
 ### Starting the Server
 
-After creating the routes, just call the `Run` method to start the server:
-
 ```lua
-MyServer:Run() -- the server will keep running and listening for requests
+server:Run()
 ```
 
 ### Request Object
-
-The `req` object passed to the handler contains the following properties:
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -155,71 +114,187 @@ The `req` object passed to the handler contains the following properties:
 
 ### Response Object
 
-The `res:response()` method accepts the following parameters:
+`res:response(status, body, headers)`:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `status` | number | ✅ | HTTP status code (200, 404, 500, etc) |
-| `body` | string/table | ✅ | Response body. If it's a table, it will be converted to JSON |
+| `body` | string/table | ✅ | Response body. Tables are auto-converted to JSON |
 | `headers` | table | ❌ | Custom response headers |
 
-### Customizing the Client Wrapper
+## CORS
 
-The `wrapClientFunc` allows customizing how the client is handled, useful for implementing SSL/TLS:
+Enable CORS with `EnableCors()`. Preflight `OPTIONS` requests are handled automatically.
 
 ```lua
-local MyServer = PudimServer:Create{
-    ServiceName = "Secure Server",
-    Port = 443,
-    Address = "0.0.0.0",
-    wrapClientFunc = function(Server)
-        local client = Server:accept()
-        -- here you can wrap the client with SSL
-        -- example: client = ssl.wrap(client, params)
-        return client
-    end
+-- Allow all origins (defaults)
+server:EnableCors()
+
+-- Restricted configuration
+server:EnableCors{
+  AllowOrigins = {"https://myapp.com", "https://admin.myapp.com"},
+  AllowMethods = {"GET", "POST"},
+  AllowHeaders = "Content-Type, Authorization",
+  AllowCredentials = true,
+  ExposeHeaders = {"X-Total-Count"},
+  MaxAge = 3600
+}
+```
+
+| Option | Type | Default |
+|--------|------|---------|
+| `AllowOrigins` | string \| string[] | `"*"` |
+| `AllowMethods` | string \| string[] | `"GET, POST, PUT, DELETE, PATCH, OPTIONS"` |
+| `AllowHeaders` | string \| string[] | `"Content-Type, Authorization"` |
+| `ExposeHeaders` | string \| string[] | `""` |
+| `AllowCredentials` | boolean | `false` |
+| `MaxAge` | number | `86400` |
+
+## Pipeline
+
+The pipeline system lets you add request/response handlers that run before your route handlers. Each handler receives `(req, res, next)` — call `next()` to continue or return early to short-circuit.
+
+```lua
+-- Request logger
+server:UseHandler{
+  name = "logger",
+  Handler = function(req, res, next)
+    print(req.method .. " " .. req.path)
+    return next()
+  end
 }
 
--- or define it later:
-MyServer:SetWrapClientFunc(function(Server)
-    return Server:accept()
-end)
+-- Authentication (short-circuits on failure)
+server:UseHandler{
+  name = "auth",
+  Handler = function(req, res, next)
+    if req.path:find("^/api/protected") and not req.headers["authorization"] then
+      return res:response(401, {error = "Unauthorized"})
+    end
+    return next()
+  end
+}
+
+-- Response wrapper
+server:UseHandler{
+  name = "timer",
+  Handler = function(req, res, next)
+    local start = os.clock()
+    local response = next()
+    print(("Request took %.3fs"):format(os.clock() - start))
+    return response
+  end
+}
+
+-- Remove a handler
+server:RemoveHandler("logger")
 ```
+
+Handlers run in the order they are registered. The route handler runs last.
+
+## Cache
+
+In-memory response cache with TTL and automatic eviction. Only `GET` requests are cached.
+
+```lua
+local Cache = require("PudimServer.cache")
+
+-- Create cache instance
+local cache = Cache.new{
+  MaxSize = 200,     -- max entries (default: 100)
+  DefaultTTL = 120   -- seconds (default: 60)
+}
+
+-- Add to pipeline (easiest way)
+server:UseHandler(Cache.createPipelineHandler(cache))
+
+-- Or use manually in a route
+server:Routes("/api/data", function(req, res)
+  local cached = cache:get("my-key")
+  if cached then return cached end
+
+  local response = res:response(200, {data = "expensive computation"})
+  cache:set("my-key", response, 30) -- custom TTL
+  return response
+end)
+
+-- Invalidate entries
+cache:invalidate("my-key")
+cache:clear()
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `MaxSize` | number | `100` | Max entries before eviction |
+| `DefaultTTL` | number | `60` | TTL in seconds |
 
 ## Complete Example
 
 ```lua
 local PudimServer = require("PudimServer")
+local Cache = require("PudimServer.cache")
 
-local MyServer = PudimServer:Create{
-    ServiceName = "My API",
-    Port = 3000,
-    Address = "localhost"
+local server = PudimServer:Create{
+  ServiceName = "My API",
+  Port = 3000,
+  Address = "localhost"
 }
 
--- Main route
-MyServer:Routes("/", function(req, res)
-    if req.method == "GET" then
-        return res:response(200, "<h1>Welcome!</h1>", {["Content-Type"] = "text/html"})
-    end
-    return res:response(405, {error = "Method not allowed"})
+-- Enable CORS
+server:EnableCors()
+
+-- Add request logger
+server:UseHandler{
+  name = "logger",
+  Handler = function(req, res, next)
+    print(("[%s] %s %s"):format(os.date("%H:%M:%S"), req.method, req.path))
+    return next()
+  end
+}
+
+-- Add cache (GET only, 30s TTL)
+local cache = Cache.new{ DefaultTTL = 30 }
+server:UseHandler(Cache.createPipelineHandler(cache))
+
+-- Routes
+server:Routes("/", function(req, res)
+  if req.method == "GET" then
+    return res:response(200, "<h1>Welcome!</h1>", {["Content-Type"] = "text/html"})
+  end
+  return res:response(405, {error = "Method not allowed"})
 end)
 
--- Data API
-MyServer:Routes("/api/data", function(req, res)
-    if req.method == "GET" then
-        return res:response(200, {
-            status = "ok",
-            timestamp = os.time(),
-            message = "API working!"
-        })
-    end
-    return res:response(405, {error = "Method not allowed"})
+server:Routes("/api/data", function(req, res)
+  if req.method == "GET" then
+    return res:response(200, {
+      status = "ok",
+      timestamp = os.time(),
+      message = "API working!"
+    })
+  end
+  return res:response(405, {error = "Method not allowed"})
 end)
 
--- Start the server
 print("Server running at http://localhost:3000")
-MyServer:Run()
+server:Run()
+```
+
+## Examples
+
+Functional examples are available in the [`examples/`](examples/) directory:
+
+| File | Description |
+|------|-------------|
+| [`json_response_example.lua`](examples/json_response_example.lua) | Auto JSON encoding for table responses |
+| [`cors_example.lua`](examples/cors_example.lua) | CORS with default settings |
+| [`cors_restricted_example.lua`](examples/cors_restricted_example.lua) | CORS with restricted origins and credentials |
+| [`pipeline_example.lua`](examples/pipeline_example.lua) | Logger, auth and custom header pipeline handlers |
+| [`cache_example.lua`](examples/cache_example.lua) | Pipeline cache and manual cache usage |
+
+Run any example with:
+
+```sh
+lua ./examples/json_response_example.lua
 ```
 
 ## Roadmap
@@ -232,15 +307,15 @@ MyServer:Run()
 - [x] Basic routing system
 - [x] HTTP request parsing (method, path, headers, body)
 - [x] Automatic JSON responses (tables converted to JSON)
-- [x] Client wrapper customization (`wrapClientFunc`)
 - [x] Configurable logging system
+- [x] CORS helpers (Cross-Origin Resource Sharing)
+- [x] Request/response pipeline (middleware at HTTP level)
+- [x] In-memory response cache with TTL
 
 ### 📋 Planned
 
 - [ ] Dynamic routes with parameters (`/users/:id`, `/posts/:slug`)
 - [ ] Automatic query string parsing (`?page=1&limit=10`)
-- [ ] Middleware system for intercepting requests
-- [ ] CORS helpers (Cross-Origin Resource Sharing)
 - [ ] More HTTP status codes mapped
 - [ ] File upload support (multipart/form-data)
 - [ ] Serve static files (HTML, CSS, JS, images)
