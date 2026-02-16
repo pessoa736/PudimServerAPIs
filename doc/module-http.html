@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • HTTP Module</title>
+  <meta name="description" content="API for the PudimServer.http module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.http</code></h1>
+          <p class="muted">HTTP request parsing and response generation.</p>
+        </section>
+
+    <section class="card" id="parse-request">
+      <h2><code>http:ParseRequest(raw)</code></h2>
+      <p>Transforms the raw HTTP string into a table with <code>method</code>, <code>path</code>, <code>version</code>, <code>headers</code>, <code>body</code>, <code>query</code>, and <code>params</code>.</p>
+      <p><strong>Inputs:</strong> <code>raw</code> (string containing the full HTTP request).</p>
+      <p><strong>Output:</strong> parsed <code>Request</code> table.</p>
+      <pre><code>local http = require("PudimServer.http")
+local req = http:ParseRequest(rawRequest)</code></pre>
+    </section>
+
+        <section class="card" id="response">
+          <h2><code>http:response(status, body, headers?)</code></h2>
+          <p>Builds the final HTTP response; when <code>body</code> is a table, it is automatically converted to JSON.</p>
+          <p><strong>Inputs:</strong> <code>status</code> (number), <code>body</code> (string|table), <code>headers?</code> (optional table).</p>
+          <p><strong>Output:</strong> HTTP string ready to send through the socket.</p>
+          <pre><code>return http:response(200, { ok = true })</code></pre>
+        </section>
+
+    <!-- ── Status Codes ── -->
+    <section class="card" id="status-codes">
+      <h2>Supported Status Codes</h2>
+      <p>The <code>response</code> method automatically maps these status codes to their reason phrase. Any unlisted code will produce an empty reason.</p>
+      <table class="field-table">
+        <thead><tr><th>Code</th><th>Reason Phrase</th></tr></thead>
+        <tbody>
+          <tr><td>100</td><td>Continue</td></tr>
+          <tr><td>101</td><td>Switching Protocols</td></tr>
+          <tr><td>102</td><td>Processing</td></tr>
+          <tr><td>200</td><td>OK</td></tr>
+          <tr><td>201</td><td>Created</td></tr>
+          <tr><td>202</td><td>Accepted</td></tr>
+          <tr><td>204</td><td>No Content</td></tr>
+          <tr><td>301</td><td>Moved Permanently</td></tr>
+          <tr><td>302</td><td>Found</td></tr>
+          <tr><td>304</td><td>Not Modified</td></tr>
+          <tr><td>400</td><td>Bad Request</td></tr>
+          <tr><td>401</td><td>Unauthorized</td></tr>
+          <tr><td>403</td><td>Forbidden</td></tr>
+          <tr><td>404</td><td>Not Found</td></tr>
+          <tr><td>405</td><td>Method Not Allowed</td></tr>
+          <tr><td>409</td><td>Conflict</td></tr>
+          <tr><td>415</td><td>Unsupported Media Type</td></tr>
+          <tr><td>422</td><td>Unprocessable Entity</td></tr>
+          <tr><td>429</td><td>Too Many Requests</td></tr>
+          <tr><td>500</td><td>Internal Server Error</td></tr>
+          <tr><td>501</td><td>Not Implemented</td></tr>
+          <tr><td>502</td><td>Bad Gateway</td></tr>
+          <tr><td>503</td><td>Service Unavailable</td></tr>
+          <tr><td>504</td><td>Gateway Timeout</td></tr>
+        </tbody>
+      </table>
+    </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#parse-request">ParseRequest</a>
+            <a href="#response">response</a>
+            <hr style="border-color:var(--line);margin:4px 0">
+            <a href="#status-codes">Status Codes</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • HTTP Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

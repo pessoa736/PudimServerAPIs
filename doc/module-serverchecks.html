@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • ServerChecks Module</title>
+  <meta name="description" content="API for the PudimServer.ServerChecks module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.ServerChecks</code></h1>
+          <p class="muted">Helper checks for server runtime conditions.</p>
+        </section>
+
+        <section class="card" id="is-port-open">
+          <h2><code>ServerChecks.is_Port_Open(address, port)</code></h2>
+          <p>Checks whether a TCP port is open on the provided address and returns <code>boolean, string</code>.</p>
+          <p><strong>Inputs:</strong> <code>address</code> (string), <code>port</code> (number).</p>
+          <p><strong>Output:</strong> <code>boolean</code> (is open?) and <code>string</code> with reason/status.</p>
+          <pre><code>local ServerChecks = require("PudimServer.ServerChecks")
+local ok, reason = ServerChecks.is_Port_Open("127.0.0.1", 8080)</code></pre>
+        </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#is-port-open">is_Port_Open</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • ServerChecks Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

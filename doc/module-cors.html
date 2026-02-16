@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • CORS Module</title>
+  <meta name="description" content="API for the PudimServer.cors module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.cors</code></h1>
+          <p class="muted">Support functions for CORS configuration.</p>
+        </section>
+
+    <section class="card" id="create-config">
+      <h2><code>cors.createConfig(config?)</code></h2>
+      <p>Resolves CORS defaults and normalizes input values.</p>
+      <p><strong>Inputs:</strong> <code>config?</code> (optional table with CORS rules).</p>
+      <p><strong>Output:</strong> resolved CORS configuration table.</p>
+      <pre><code>local cors = require("PudimServer.cors")
+local config = cors.createConfig{
+  AllowOrigins = {"https://app.example.com"},
+  AllowCredentials = true
+}</code></pre>
+    </section>
+
+    <section class="card" id="build-headers">
+      <h2><code>cors.buildHeaders(config, requestOrigin?)</code></h2>
+      <p>Builds final CORS headers to attach to the HTTP response.</p>
+      <p><strong>Inputs:</strong> <code>config</code> (resolved CORS table), <code>requestOrigin?</code> (optional string).</p>
+      <p><strong>Output:</strong> CORS headers table.</p>
+      <pre><code>local headers = cors.buildHeaders(config, "https://app.example.com")
+print(headers["Access-Control-Allow-Origin"])</code></pre>
+    </section>
+
+        <section class="card" id="preflight-response">
+          <h2><code>cors.preflightResponse(config)</code></h2>
+          <p>Returns an HTTP <code>204</code> response for <code>OPTIONS</code> preflight.</p>
+          <p><strong>Inputs:</strong> <code>config</code> (resolved CORS table).</p>
+          <p><strong>Output:</strong> HTTP preflight response string.</p>
+          <pre><code>local response = cors.preflightResponse(config)
+print(response)</code></pre>
+        </section>
+
+    <!-- ── CorsConfig ── -->
+    <section class="card" id="cors-config">
+      <h2>CorsConfig</h2>
+      <p>Fields accepted by <code>cors.createConfig(config?)</code> and <code>server:EnableCors(config?)</code>.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>AllowOrigins</td><td>string | string[]</td><td><code>"*"</code></td><td>Allowed origins. Use <code>"*"</code> for any or a list of specific origins.</td></tr>
+          <tr><td>AllowMethods</td><td>string | string[]</td><td><code>"GET, POST, PUT, DELETE, PATCH, OPTIONS"</code></td><td>Allowed HTTP methods.</td></tr>
+          <tr><td>AllowHeaders</td><td>string | string[]</td><td><code>"Content-Type, Authorization"</code></td><td>Headers the client may send.</td></tr>
+          <tr><td>ExposeHeaders</td><td>string | string[]</td><td><code>""</code></td><td>Headers exposed to the browser beyond the CORS-safelisted ones.</td></tr>
+          <tr><td>AllowCredentials</td><td>boolean</td><td><code>false</code></td><td>Whether to include <code>Access-Control-Allow-Credentials: true</code>.</td></tr>
+          <tr><td>MaxAge</td><td>number</td><td><code>86400</code></td><td>Preflight cache duration in seconds (24 h by default).</td></tr>
+        </tbody>
+      </table>
+      <pre><code>server:EnableCors{
+  AllowOrigins = {"https://app.example.com"},
+  AllowMethods = "GET, POST",
+  AllowHeaders = "Content-Type, Authorization, X-Custom",
+  AllowCredentials = true,
+  MaxAge = 3600
+}</code></pre>
+    </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#create-config">createConfig</a>
+            <a href="#build-headers">buildHeaders</a>
+            <a href="#preflight-response">preflightResponse</a>
+            <hr style="border-color:var(--line);margin:4px 0">
+            <a href="#cors-config">CorsConfig</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • CORS Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

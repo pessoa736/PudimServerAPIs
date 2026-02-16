@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Core Module</title>
+  <meta name="description" content="API for the main PudimServer module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer</code></h1>
+          <p class="muted">Main module to create and run the server.</p>
+        </section>
+
+    <section class="card" id="create">
+      <h2><code>PudimServer:Create(config?)</code></h2>
+      <p>Creates the main server instance with host, port, and advanced feature options.</p>
+      <p><strong>Inputs:</strong> <code>config?</code> (optional table: <code>ServiceName</code>, <code>Address</code>, <code>Port</code>, <code>Middlewares</code>, <code>Https</code>, <code>Concurrency</code>, <code>HotReload</code>).</p>
+      <p><strong>Output:</strong> configured server instance.</p>
+      <pre><code>local server = PudimServer:Create{ Port = 8080 }</code></pre>
+    </section>
+
+    <section class="card" id="routes">
+      <h2><code>server:Routes(path, handler)</code></h2>
+      <p>Registers a route and delegates request handling to the provided handler.</p>
+      <p><strong>Inputs:</strong> <code>path</code> (string), <code>handler</code> (function <code>(req, res)</code>).</p>
+      <p><strong>Output:</strong> no meaningful return value (internal route registration).</p>
+      <pre><code>server:Routes("/health", function(req, res)
+  return res:response(200, "ok")
+end)</code></pre>
+    </section>
+
+    <section class="card" id="enable-cors">
+      <h2><code>server:EnableCors(config?)</code></h2>
+      <p>Enables CORS and automatic <code>OPTIONS</code> preflight handling.</p>
+      <p><strong>Inputs:</strong> <code>config?</code> (optional table with CORS policies).</p>
+      <p><strong>Output:</strong> no meaningful return value (CORS enabled on server instance).</p>
+      <pre><code>server:EnableCors{
+  AllowOrigins = {"https://app.example.com"},
+  AllowMethods = {"GET", "POST"}
+}</code></pre>
+    </section>
+
+    <section class="card" id="use-handler">
+      <h2><code>server:UseHandler(entry)</code></h2>
+      <p>Adds HTTP middleware to the pipeline before route execution.</p>
+      <p><strong>Inputs:</strong> <code>entry</code> (table with <code>name</code> and <code>Handler(req,res,next)</code>).</p>
+      <p><strong>Output:</strong> no meaningful return value (handler registered).</p>
+      <pre><code>server:UseHandler{
+  name = "auth",
+  Handler = function(req, res, next)
+    if not req.headers["authorization"] then
+      return res:response(401, "Unauthorized")
+    end
+    return next()
+  end
+}</code></pre>
+    </section>
+
+    <section class="card" id="remove-handler">
+      <h2><code>server:RemoveHandler(name)</code></h2>
+      <p>Removes HTTP middleware by name.</p>
+      <p><strong>Inputs:</strong> <code>name</code> (string).</p>
+      <p><strong>Output:</strong> <code>boolean</code> indicating whether removal succeeded.</p>
+      <pre><code>local removed = server:RemoveHandler("auth")
+print("handler removed?", removed)</code></pre>
+    </section>
+
+    <section class="card" id="set-middlewares">
+      <h2><code>server:SetMiddlewares(middleware)</code></h2>
+      <p>Adds socket middleware to operate on the raw TCP client before HTTP parsing.</p>
+      <p><strong>Inputs:</strong> <code>middleware</code> (table with <code>name</code> and <code>Handler(client)</code>).</p>
+      <p><strong>Output:</strong> no meaningful return value (middleware registered).</p>
+      <pre><code>server:SetMiddlewares{
+  name = "socket-log",
+  Handler = function(client)
+    print("new tcp connection")
+    return client
+  end
+}</code></pre>
+    </section>
+
+    <section class="card" id="remove-middlewares">
+      <h2><code>server:RemoveMiddlewares(name)</code></h2>
+      <p>Removes socket middleware by name.</p>
+      <p><strong>Inputs:</strong> <code>name</code> (string).</p>
+      <p><strong>Output:</strong> <code>boolean</code> indicating whether removal succeeded.</p>
+      <pre><code>local removed = server:RemoveMiddlewares("socket-log")
+print("socket middleware removed?", removed)</code></pre>
+    </section>
+
+    <section class="card" id="enable-hot-reload">
+      <h2><code>server:EnableHotReload(config?)</code></h2>
+      <p>Configures development hot reload by invalidating modules in <code>package.loaded</code>.</p>
+      <p><strong>Inputs:</strong> <code>config?</code> (optional table with <code>Enabled</code>, <code>Modules</code>, <code>Prefixes</code>).</p>
+      <p><strong>Output:</strong> no meaningful return value (hot reload configured).</p>
+      <pre><code>server:EnableHotReload{
+  Enabled = true,
+  Modules = {"examples.hot_reload_message"},
+  Prefixes = {"app."}
+}</code></pre>
+    </section>
+
+        <section class="card" id="run">
+          <h2><code>server:Run()</code></h2>
+          <p>Starts the main server loop, accepts connections, and processes requests.</p>
+          <p><strong>Inputs:</strong> no parameters (uses server configuration already set).</p>
+          <p><strong>Output:</strong> blocking server execution loop.</p>
+          <pre><code>server:Run()</code></pre>
+        </section>
+
+    <!-- ── Request Object ── -->
+    <section class="card" id="request-object">
+      <h2>Request Object</h2>
+      <p>Every route handler receives a <code>req</code> table built by <code>http:ParseRequest</code>. These are the available fields:</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>method</td><td>string</td><td>HTTP method (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, etc.)</td></tr>
+          <tr><td>path</td><td>string</td><td>Request path, e.g. <code>"/api/users"</code></td></tr>
+          <tr><td>version</td><td>string</td><td>HTTP version, e.g. <code>"HTTP/1.1"</code></td></tr>
+          <tr><td>headers</td><td>table&lt;string,string&gt;</td><td>Request headers (keys are lowercase)</td></tr>
+          <tr><td>body</td><td>string</td><td>Raw request body</td></tr>
+          <tr><td>query</td><td>table&lt;string, string|string[]&gt;?</td><td>Parsed query string (populated when URL contains <code>?key=value</code>)</td></tr>
+          <tr><td>params</td><td>table&lt;string, string&gt;?</td><td>Dynamic route parameters (e.g. <code>:id</code> becomes <code>req.params.id</code>)</td></tr>
+        </tbody>
+      </table>
+      <pre><code>server:Routes("/users/:id", function(req, res)
+  print(req.method)        -- "GET"
+  print(req.path)          -- "/users/42"
+  print(req.params.id)     -- "42"
+  print(req.headers["host"]) -- "localhost:8080"
+  return res:response(200, { id = req.params.id })
+end)</code></pre>
+    </section>
+
+    <!-- ── Config: Create ── -->
+    <section class="card" id="config-create">
+      <h2>Create Config</h2>
+      <p>Full field reference for the <code>config</code> table passed to <code>PudimServer:Create(config?)</code>.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>ServiceName</td><td>string?</td><td><code>"Pudim Server"</code></td><td>Service name shown in logs</td></tr>
+          <tr><td>Address</td><td>string?</td><td><code>"localhost"</code></td><td>Bind address (<code>"localhost"</code>, <code>"127.0.0.1"</code>, <code>"0.0.0.0"</code>)</td></tr>
+          <tr><td>Port</td><td>number?</td><td><code>8080</code></td><td>Port number</td></tr>
+          <tr><td>Middlewares</td><td>table?</td><td><code>{}</code></td><td>Initial socket-level middlewares</td></tr>
+          <tr><td>Https</td><td>HttpsConfig?</td><td><code>nil</code></td><td>Native HTTPS configuration (see below)</td></tr>
+          <tr><td>Concurrency</td><td>ConcurrencyConfig?</td><td><code>nil</code></td><td>Cooperative concurrency configuration (see below)</td></tr>
+          <tr><td>HotReload</td><td>HotReloadConfig?</td><td><code>nil</code></td><td>Development hot reload configuration (see below)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── Config: Https ── -->
+    <section class="card" id="config-https">
+      <h2>HttpsConfig</h2>
+      <p>Enables native TLS via <code>luasec</code>. Requires the <code>luasec</code> rock installed.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Enabled</td><td>boolean?</td><td><code>false</code></td><td>Enable native HTTPS</td></tr>
+          <tr><td>Mode</td><td>string?</td><td><code>"server"</code></td><td>SSL mode</td></tr>
+          <tr><td>Protocol</td><td>string?</td><td><code>"any"</code></td><td>SSL protocol</td></tr>
+          <tr><td>Key</td><td>string?</td><td>&mdash;</td><td>Path to the private key file</td></tr>
+          <tr><td>Certificate</td><td>string?</td><td>&mdash;</td><td>Path to the certificate file</td></tr>
+          <tr><td>Verify</td><td>string?</td><td><code>"none"</code></td><td>Peer verification policy</td></tr>
+          <tr><td>Options</td><td>string?</td><td>&mdash;</td><td>SSL options (e.g. <code>"all"</code>)</td></tr>
+        </tbody>
+      </table>
+      <pre><code>local server = PudimServer:Create{
+  Port = 8443,
+  Https = {
+    Enabled = true,
+    Key = "./certs/server.key",
+    Certificate = "./certs/server.crt"
+  }
+}</code></pre>
+    </section>
+
+    <!-- ── Config: Concurrency ── -->
+    <section class="card" id="config-concurrency">
+      <h2>ConcurrencyConfig</h2>
+      <p>Enables cooperative concurrency using Lua coroutines to handle multiple connections without blocking.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Enabled</td><td>boolean?</td><td><code>false</code></td><td>Enable cooperative concurrency</td></tr>
+          <tr><td>Sleep</td><td>number?</td><td><code>0.001</code></td><td>Idle loop sleep interval in seconds</td></tr>
+        </tbody>
+      </table>
+      <pre><code>local server = PudimServer:Create{
+  Port = 8080,
+  Concurrency = { Enabled = true, Sleep = 0.001 }
+}</code></pre>
+    </section>
+
+    <!-- ── Config: HotReload ── -->
+    <section class="card" id="config-hotreload">
+      <h2>HotReloadConfig</h2>
+      <p>Development hot reload by clearing <code>package.loaded</code> entries before each request. No file watcher required.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Enabled</td><td>boolean?</td><td><code>false</code></td><td>Enable hot reload</td></tr>
+          <tr><td>Modules</td><td>string[]?</td><td><code>{}</code></td><td>Exact module names to invalidate in <code>package.loaded</code></td></tr>
+          <tr><td>Prefixes</td><td>string[]?</td><td><code>{}</code></td><td>Module prefixes to invalidate (e.g. <code>"app."</code> clears all <code>app.*</code>)</td></tr>
+        </tbody>
+      </table>
+      <pre><code>local server = PudimServer:Create{
+  Port = 8080,
+  HotReload = {
+    Enabled = true,
+    Modules = {"examples.hot_reload_message"},
+    Prefixes = {"app."}
+  }
+}</code></pre>
+    </section>
+
+    <!-- ── Request Lifecycle ── -->
+    <section class="card" id="request-lifecycle">
+      <h2>Request Lifecycle</h2>
+      <p>Every incoming connection goes through these steps inside <code>server:Run()</code>:</p>
+      <ol>
+        <li><strong>TCP accept</strong> &mdash; <code>socket:accept()</code> receives a raw client connection.</li>
+        <li><strong>Socket middlewares</strong> &mdash; each middleware registered with <code>SetMiddlewares</code> runs sequentially on the raw TCP client (e.g. TLS wrapping).</li>
+        <li><strong>Hot reload</strong> &mdash; if enabled, configured modules are cleared from <code>package.loaded</code> so the next <code>require</code> picks up fresh code.</li>
+        <li><strong>Receive</strong> &mdash; <code>client:receive()</code> reads the raw HTTP data from the socket.</li>
+        <li><strong>Parse</strong> &mdash; <code>http:ParseRequest(raw)</code> transforms the raw string into a <code>Request</code> table (<code>method</code>, <code>path</code>, <code>headers</code>, <code>body</code>, <code>query</code>, <code>params</code>).</li>
+        <li><strong>CORS preflight</strong> &mdash; if the method is <code>OPTIONS</code> and CORS is enabled, a <code>204</code> preflight response is returned immediately.</li>
+        <li><strong>Pipeline execute</strong> &mdash; <code>pipeline:execute(req, res, routeHandler)</code> runs all handlers added via <code>UseHandler</code>, each calling <code>next()</code> or short-circuiting.</li>
+        <li><strong>Route match</strong> &mdash; the final handler in the pipeline finds the matching route and calls its handler function.</li>
+        <li><strong>CORS headers</strong> &mdash; CORS response headers are injected into the final response string.</li>
+        <li><strong>Send</strong> &mdash; <code>client:send(response)</code> writes the HTTP response back to the client and closes the connection.</li>
+      </ol>
+    </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#create">Create</a>
+            <a href="#routes">Routes</a>
+            <a href="#enable-cors">EnableCors</a>
+            <a href="#use-handler">UseHandler</a>
+            <a href="#remove-handler">RemoveHandler</a>
+            <a href="#set-middlewares">SetMiddlewares</a>
+            <a href="#remove-middlewares">RemoveMiddlewares</a>
+            <a href="#enable-hot-reload">EnableHotReload</a>
+            <a href="#run">Run</a>
+            <hr style="border-color:var(--line);margin:4px 0">
+            <a href="#request-object">Request Object</a>
+            <a href="#config-create">Create Config</a>
+            <a href="#config-https">HttpsConfig</a>
+            <a href="#config-concurrency">ConcurrencyConfig</a>
+            <a href="#config-hotreload">HotReloadConfig</a>
+            <a href="#request-lifecycle">Request Lifecycle</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Core Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

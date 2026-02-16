@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Modules</title>
+  <meta name="description" content="Module-based reference for PudimServer.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <section class="card">
+      <h1>Modules</h1>
+      <p class="muted">Each page below documents the APIs of a specific library module.</p>
+    </section>
+
+    
+
+    <section class="grid three">
+      <a class="card link-card" href="./module-core.html">
+        <h3>PudimServer (core)</h3>
+        <p>Server creation, routes, middlewares, CORS, hot reload, and runtime execution.</p>
+      </a>
+      <a class="card link-card" href="./module-http.html">
+        <h3>PudimServer.http</h3>
+        <p>HTTP request parsing and response building.</p>
+      </a>
+      <a class="card link-card" href="./module-cors.html">
+        <h3>PudimServer.cors</h3>
+        <p>CORS configuration and header building, including preflight.</p>
+      </a>
+      <a class="card link-card" href="./module-pipeline.html">
+        <h3>PudimServer.pipeline</h3>
+        <p>HTTP handler chaining with next.</p>
+      </a>
+      <a class="card link-card" href="./module-cache.html">
+        <h3>PudimServer.cache</h3>
+        <p>In-memory TTL cache and pipeline handler integration.</p>
+      </a>
+      <a class="card link-card" href="./module-utils.html">
+        <h3>PudimServer.utils</h3>
+        <p>Type validation and file utility helpers.</p>
+      </a>
+      <a class="card link-card" href="./module-serverchecks.html">
+        <h3>PudimServer.ServerChecks</h3>
+        <p>TCP port availability checks.</p>
+      </a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Modules • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

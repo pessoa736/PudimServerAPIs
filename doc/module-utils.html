@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Utils Module</title>
+  <meta name="description" content="API for the PudimServer.utils module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.utils</code></h1>
+          <p class="muted">Type validation, logging, and file utility helpers.</p>
+        </section>
+
+    <section class="card" id="create-interface">
+      <h2><code>utils:createInterface(fields, extends?)</code></h2>
+      <p>Creates type contracts for runtime validation.</p>
+      <p><strong>Inputs:</strong> <code>fields</code> (type table), <code>extends?</code> (optional table).</p>
+      <p><strong>Output:</strong> interface/contract object.</p>
+      <pre><code>local utils = require("PudimServer.utils")
+local User = utils:createInterface{
+  name = "string",
+  age = "number"
+}</code></pre>
+    </section>
+
+    <section class="card" id="verify-types">
+      <h2><code>utils:verifyTypes(value, contract, printerFn?, break?)</code></h2>
+      <p>Validates types and returns <code>(true)</code> or <code>(false, errorMsg)</code>.</p>
+      <p><strong>Inputs:</strong> <code>value</code>, <code>contract</code>, <code>printerFn?</code>, <code>break?</code>.</p>
+      <p><strong>Output:</strong> <code>boolean</code> and optionally an error <code>string</code>.</p>
+      <pre><code>local ok, err = utils:verifyTypes({name = "Ana", age = 21}, User)
+print(ok, err)</code></pre>
+    </section>
+
+    <section class="card" id="load-message">
+      <h2><code>utils:loadMessageOnChange(channel, msg, printerFn)</code></h2>
+      <p>Emits a message only when its content changes.</p>
+      <p><strong>Inputs:</strong> <code>channel</code> (string), <code>msg</code> (string), <code>printerFn</code> (function).</p>
+      <p><strong>Output:</strong> no meaningful return value (logging side effect).</p>
+      <pre><code>utils:loadMessageOnChange("reload", "module reloaded", print)</code></pre>
+    </section>
+
+    <section class="card" id="check-files">
+      <h2><code>utils:checkFilesExist(file)</code></h2>
+      <p>Checks whether a file exists on disk.</p>
+      <p><strong>Inputs:</strong> <code>file</code> (string).</p>
+      <p><strong>Output:</strong> <code>boolean</code>.</p>
+      <pre><code>local exists = utils:checkFilesExist("./README.md")
+print(exists)</code></pre>
+    </section>
+
+    <section class="card" id="get-content">
+      <h2><code>utils:getContentFile(file)</code></h2>
+      <p>Reads file content and returns a string.</p>
+      <p><strong>Inputs:</strong> <code>file</code> (string).</p>
+      <p><strong>Output:</strong> <code>string</code> with file content.</p>
+      <pre><code>local content = utils:getContentFile("./README.md")
+print(content)</code></pre>
+    </section>
+
+    <section class="card" id="write-file">
+      <h2><code>utils:writeFile(file, content)</code></h2>
+      <p>Writes content to a file.</p>
+      <p><strong>Inputs:</strong> <code>file</code> (string), <code>content</code> (string).</p>
+      <p><strong>Output:</strong> no meaningful return value.</p>
+      <pre><code>utils:writeFile("./tmp.txt", "Hello from PudimServer")</code></pre>
+    </section>
+
+        <section class="card" id="mkdir">
+          <h2><code>utils:mkdir(path)</code></h2>
+          <p>Creates a directory recursively when needed.</p>
+          <p><strong>Inputs:</strong> <code>path</code> (string).</p>
+          <p><strong>Output:</strong> no meaningful return value.</p>
+          <pre><code>utils:mkdir("./tmp/nested")</code></pre>
+        </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#create-interface">createInterface</a>
+            <a href="#verify-types">verifyTypes</a>
+            <a href="#load-message">loadMessageOnChange</a>
+            <a href="#check-files">checkFilesExist</a>
+            <a href="#get-content">getContentFile</a>
+            <a href="#write-file">writeFile</a>
+            <a href="#mkdir">mkdir</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Utils Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

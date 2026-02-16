@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Cache Module</title>
+  <meta name="description" content="API for the PudimServer.cache module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.cache</code></h1>
+          <p class="muted">In-memory cache with TTL for HTTP responses.</p>
+        </section>
+
+    <section class="card" id="new">
+      <h2><code>Cache.new(config?)</code></h2>
+      <p>Creates a cache with <code>MaxSize</code> and <code>DefaultTTL</code>.</p>
+      <p><strong>Inputs:</strong> <code>config?</code> (optional table with <code>MaxSize</code> and <code>DefaultTTL</code>).</p>
+      <p><strong>Output:</strong> <code>Cache</code> instance.</p>
+      <pre><code>local Cache = require("PudimServer.cache")
+local cache = Cache.new{ MaxSize = 100, DefaultTTL = 60 }</code></pre>
+    </section>
+
+    <section class="card" id="get">
+      <h2><code>Cache:get(key)</code></h2>
+      <p>Returns cached response or <code>nil</code> if expired or missing.</p>
+      <p><strong>Inputs:</strong> <code>key</code> (string).</p>
+      <p><strong>Output:</strong> cached string or <code>nil</code>.</p>
+      <pre><code>local value = cache:get("GET:/users")
+print(value)</code></pre>
+    </section>
+
+    <section class="card" id="set">
+      <h2><code>Cache:set(key, response, ttl?)</code></h2>
+      <p>Stores a response in cache with optional TTL.</p>
+      <p><strong>Inputs:</strong> <code>key</code> (string), <code>response</code> (string), <code>ttl?</code> (optional number).</p>
+      <p><strong>Output:</strong> no meaningful return value (entry stored in cache).</p>
+      <pre><code>cache:set("GET:/users", "HTTP/1.1 200 OK", 30)</code></pre>
+    </section>
+
+    <section class="card" id="invalidate">
+      <h2><code>Cache:invalidate(key)</code></h2>
+      <p>Invalidates a specific entry.</p>
+      <p><strong>Inputs:</strong> <code>key</code> (string).</p>
+      <p><strong>Output:</strong> no meaningful return value.</p>
+      <pre><code>cache:invalidate("GET:/users")</code></pre>
+    </section>
+
+    <section class="card" id="clear">
+      <h2><code>Cache:clear()</code></h2>
+      <p>Clears all cache entries.</p>
+      <p><strong>Inputs:</strong> no parameters.</p>
+      <p><strong>Output:</strong> no meaningful return value.</p>
+      <pre><code>cache:clear()</code></pre>
+    </section>
+
+        <section class="card" id="create-handler">
+          <h2><code>Cache.createPipelineHandler(cache, ttl?)</code></h2>
+          <p>Creates middleware to cache GET responses automatically.</p>
+          <p><strong>Inputs:</strong> <code>cache</code> (Cache instance), <code>ttl?</code> (optional number).</p>
+          <p><strong>Output:</strong> pipeline entry (<code>{ name, Handler }</code>).</p>
+          <pre><code>local cacheHandler = Cache.createPipelineHandler(cache, 30)
+server:UseHandler(cacheHandler)</code></pre>
+        </section>
+
+    <!-- ── CacheConfig ── -->
+    <section class="card" id="cache-config">
+      <h2>CacheConfig</h2>
+      <p>Fields accepted by <code>Cache.new(config?)</code>.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>MaxSize</td><td>number?</td><td><code>100</code></td><td>Maximum number of entries stored in the cache. When exceeded, the oldest entry is evicted.</td></tr>
+          <tr><td>DefaultTTL</td><td>number?</td><td><code>60</code></td><td>Time-to-live in seconds for each cache entry (used when <code>ttl</code> is not specified in <code>set()</code>).</td></tr>
+        </tbody>
+      </table>
+      <pre><code>local cache = Cache.new{
+  MaxSize = 200,
+  DefaultTTL = 120
+}</code></pre>
+    </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#new">new</a>
+            <a href="#get">get</a>
+            <a href="#set">set</a>
+            <a href="#invalidate">invalidate</a>
+            <a href="#clear">clear</a>
+            <a href="#create-handler">createPipelineHandler</a>
+            <hr style="border-color:var(--line);margin:4px 0">
+            <a href="#cache-config">CacheConfig</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Cache Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

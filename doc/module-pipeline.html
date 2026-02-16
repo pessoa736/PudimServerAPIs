@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Pipeline Module</title>
+  <meta name="description" content="API for the PudimServer.pipeline module.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <div class="docs-layout">
+      <div class="docs-main">
+        <section class="card">
+          <h1>Module: <code>PudimServer.pipeline</code></h1>
+          <p class="muted">HTTP handler pipeline with chained execution.</p>
+        </section>
+
+    <section class="card" id="new">
+      <h2><code>Pipeline.new()</code></h2>
+      <p>Creates a new empty pipeline instance.</p>
+      <p><strong>Inputs:</strong> no parameters.</p>
+      <p><strong>Output:</strong> <code>Pipeline</code> instance.</p>
+      <pre><code>local Pipeline = require("PudimServer.pipeline")
+local pipeline = Pipeline.new()</code></pre>
+    </section>
+
+    <section class="card" id="use">
+      <h2><code>Pipeline:use(entry)</code></h2>
+      <p>Registers a handler at the end of the execution chain.</p>
+      <p><strong>Inputs:</strong> <code>entry</code> (table with <code>name</code> and <code>Handler(req,res,next)</code>).</p>
+      <p><strong>Output:</strong> no meaningful return value (internal registration).</p>
+      <pre><code>pipeline:use{
+  name = "logger",
+  Handler = function(req, res, next)
+    print(req.method, req.path)
+    return next()
+  end
+}</code></pre>
+    </section>
+
+    <section class="card" id="remove">
+      <h2><code>Pipeline:remove(name)</code></h2>
+      <p>Removes a handler by name and returns <code>true</code> when found.</p>
+      <p><strong>Inputs:</strong> <code>name</code> (string).</p>
+      <p><strong>Output:</strong> <code>boolean</code> indicating removal status.</p>
+      <pre><code>local removed = pipeline:remove("logger")
+print("removed?", removed)</code></pre>
+    </section>
+
+        <section class="card" id="execute">
+          <h2><code>Pipeline:execute(req, res, finalHandler)</code></h2>
+          <p>Executes handlers sequentially and finishes with <code>finalHandler</code>.</p>
+          <p><strong>Inputs:</strong> <code>req</code>, <code>res</code>, <code>finalHandler</code> (final function).</p>
+          <p><strong>Output:</strong> pipeline/final handler response (typically an HTTP string).</p>
+          <pre><code>local result = pipeline:execute(req, res, function()
+  return res:response(200, "ok")
+end)
+print(result)</code></pre>
+        </section>
+
+    <!-- ── PipelineEntry ── -->
+    <section class="card" id="pipeline-entry">
+      <h2>PipelineEntry</h2>
+      <p>Shape of the table passed to <code>Pipeline:use(entry)</code> and <code>server:UseHandler(entry)</code>.</p>
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>name</td><td>string</td><td>Unique identifier used by <code>remove(name)</code> to unregister the handler.</td></tr>
+          <tr><td>Handler</td><td>function(req, res, next)</td><td>Callback executed during the pipeline. Call <code>next()</code> to continue to the next handler, or return a response string to short-circuit.</td></tr>
+        </tbody>
+      </table>
+      <pre><code>local entry = {
+  name = "auth",
+  Handler = function(req, res, next)
+    if not req.headers["authorization"] then
+      return res:response(401, "Unauthorized")
+    end
+    return next()
+  end
+}
+pipeline:use(entry)</code></pre>
+    </section>
+      </div>
+
+      <aside class="docs-sidebar">
+        <section class="card quick-index-card">
+          <h2>Quick index</h2>
+          <div class="quick-index">
+            <a href="#new">new</a>
+            <a href="#use">use</a>
+            <a href="#remove">remove</a>
+            <a href="#execute">execute</a>
+            <hr style="border-color:var(--line);margin:4px 0">
+            <a href="#pipeline-entry">PipelineEntry</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Pipeline Module • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

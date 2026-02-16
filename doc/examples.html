@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Examples</title>
+  <meta name="description" content="Practical PudimServer examples.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <section class="card">
+      <h1>Practical examples</h1>
+      <p class="muted">This page shows compact scenarios with a short explanation before each code snippet.</p>
+    </section>
+
+    <section class="card">
+      <h2>Minimal server</h2>
+      <p>This scenario shows the basics: create a server, register a route, and return text.</p>
+      <pre><code>local PudimServer = require("PudimServer")
+
+local server = PudimServer:Create{ Port = 8080 }
+
+server:Routes("/", function(req, res)
+  return res:response(200, "Hello World!")
+end)
+
+server:Run()</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>CORS + pipeline + cache</h2>
+      <p>This scenario adds CORS, HTTP middleware, and GET response caching.</p>
+      <pre><code>local Cache = require("PudimServer.cache")
+
+server:EnableCors()
+server:UseHandler{ name = "logger", Handler = function(req, res, next)
+  print(req.method, req.path)
+  return next()
+end }
+
+local cache = Cache.new{ DefaultTTL = 30 }
+server:UseHandler(Cache.createPipelineHandler(cache))</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Query string and dynamic routes</h2>
+      <p>Use <code>req.query</code> for URL parameters and <code>req.params</code> for dynamic segments.</p>
+      <pre><code>server:Routes("/search", function(req, res)
+  return res:response(200, { query = req.query })
+end)
+
+server:Routes("/users/:id", function(req, res)
+  return res:response(200, { userId = req.params.id })
+end)</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>HTTPS + cooperative concurrency</h2>
+      <p>This scenario enables native TLS with <code>luasec</code> and coroutine-based cooperative processing.</p>
+      <pre><code>local server = PudimServer:Create{
+  Port = 8443,
+  Https = {
+    Enabled = true,
+    Key = "./examples/certs/server.key",
+    Certificate = "./examples/certs/server.crt"
+  },
+  Concurrency = { Enabled = true, Sleep = 0.001 }
+}</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Hot reload without file watcher</h2>
+      <p>This scenario reloads modules in development by clearing <code>package.loaded</code> before each request.</p>
+      <pre><code>local server = PudimServer:Create{
+  Port = 8086,
+  HotReload = {
+    Enabled = true,
+    Modules = {"examples.hot_reload_message"}
+  }
+}
+
+server:Routes("/reload", function(req, res)
+  local messageProvider = require("examples.hot_reload_message")
+  return res:response(200, messageProvider.get())
+end)</code></pre>
+    </section>
+
+    
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Examples • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

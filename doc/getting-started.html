@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PudimServer Docs • Getting Started</title>
+  <meta name="description" content="Step-by-step guide to set up and run your first PudimServer project.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row between center">
+      <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./modules.html">Modules</a>
+        <a href="./examples.html">Examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <section class="card">
+      <h1>Getting Started</h1>
+      <p class="muted">From zero to a running server in under 5 minutes.</p>
+    </section>
+
+    <!-- Step 1 -->
+    <section class="card" id="prerequisites">
+      <h2>1. Prerequisites</h2>
+      <ul>
+        <li><strong>Lua 5.4+</strong> installed and available in your <code>PATH</code></li>
+        <li><strong>LuaRocks</strong> package manager</li>
+      </ul>
+      <p>Verify your installation:</p>
+      <pre><code>lua -v
+luarocks --version</code></pre>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="card" id="install">
+      <h2>2. Install PudimServer</h2>
+      <pre><code>luarocks install PudimServer --local</code></pre>
+      <p>This pulls <code>luasocket</code>, <code>lua-cjson</code>, and <code>loglua</code> automatically.</p>
+      <p>For HTTPS support, also install:</p>
+      <pre><code>luarocks install luasec --local</code></pre>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="card" id="first-server">
+      <h2>3. Create your first server</h2>
+      <p>Create a file called <code>main.lua</code>:</p>
+      <pre><code>local PudimServer = require("PudimServer")
+
+local server = PudimServer:Create{
+  ServiceName = "My First API",
+  Address = "0.0.0.0",
+  Port = 8080
+}
+
+server:Routes("/", function(req, res)
+  return res:response(200, "Hello from PudimServer!")
+end)
+
+server:Routes("/json", function(req, res)
+  return res:response(200, {
+    message = "Tables are auto-encoded to JSON",
+    timestamp = os.time()
+  })
+end)
+
+server:Run()</code></pre>
+    </section>
+
+    <!-- Step 4 -->
+    <section class="card" id="run-server">
+      <h2>4. Run the server</h2>
+      <pre><code>lua main.lua</code></pre>
+      <p>You should see a log message indicating the server is listening on port <code>8080</code>.</p>
+    </section>
+
+    <!-- Step 5 -->
+    <section class="card" id="test-it">
+      <h2>5. Test with curl</h2>
+      <p>Open another terminal and try these requests:</p>
+      <pre><code># Plain text response
+curl http://localhost:8080/
+
+# JSON response
+curl http://localhost:8080/json
+
+# See full headers
+curl -v http://localhost:8080/
+
+# POST request
+curl -X POST http://localhost:8080/ -d '{"name":"Pudim"}'
+
+# Test a non-existent route (404)
+curl http://localhost:8080/missing</code></pre>
+    </section>
+
+    <!-- Step 6 -->
+    <section class="card" id="add-features">
+      <h2>6. Add CORS and middleware</h2>
+      <p>Extend your server by enabling CORS and adding a logging middleware:</p>
+      <pre><code>server:EnableCors()
+
+server:UseHandler{
+  name = "logger",
+  Handler = function(req, res, next)
+    print(req.method .. " " .. req.path)
+    return next()
+  end
+}</code></pre>
+      <p>Now every request prints its method and path before route handling.</p>
+    </section>
+
+    <!-- Step 7 -->
+    <section class="card" id="dynamic-routes">
+      <h2>7. Dynamic routes and query strings</h2>
+      <p>PudimServer supports <code>:param</code> segments and automatic query string parsing:</p>
+      <pre><code>server:Routes("/users/:id", function(req, res)
+  return res:response(200, { userId = req.params.id })
+end)
+
+server:Routes("/search", function(req, res)
+  return res:response(200, { query = req.query })
+end)</code></pre>
+      <p>Test them:</p>
+      <pre><code>curl http://localhost:8080/users/42
+curl "http://localhost:8080/search?q=pudim&limit=10"</code></pre>
+    </section>
+
+    <!-- Next steps -->
+    <section class="card">
+      <h2>Next steps</h2>
+      <ul>
+        <li>Browse the <a href="./modules.html">Modules</a> reference for every available API</li>
+        <li>See the <a href="./examples.html">Examples</a> page for complete scenarios (cache, HTTPS, hot reload)</li>
+        <li>Check <a href="./module-core.html#config-https">HttpsConfig</a> to enable TLS</li>
+        <li>Check <a href="./module-core.html#config-concurrency">ConcurrencyConfig</a> for coroutine-based concurrency</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>PudimServer v0.3.1 • Getting Started • <span id="year"></span></p>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+</html>

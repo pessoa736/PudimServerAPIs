@@ -1,0 +1,293 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+:root {
+  --bg: #0f1320;
+  --panel: #171c2c;
+  --muted: #9ba6c4;
+  --text: #e8edff;
+  --accent: #ffcc4d;
+  --line: #28304a;
+}
+
+* {
+  box-sizing: border-box, content-box;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+a {
+  color: #ffe28f;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+}
+
+.row {
+  display: flex;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.center {
+  align-items: center;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(15, 19, 32, 0.9);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  color: var(--accent);
+  font-weight: 700;
+  padding: 14px 0;
+}
+
+.nav {
+  display: flex;
+  gap: 16px;
+}
+
+.nav a {
+  color: var(--text);
+  opacity: 0.9;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.nav a.active,
+.nav a:hover {
+  opacity: 1;
+  background: #222b41;
+  text-decoration: none;
+}
+
+.content {
+  padding: 24px 0 40px;
+}
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.docs-main {
+  min-width: 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chips span {
+  font-size: 13px;
+  color: #f6d57c;
+  border: 1px solid #554419;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid.three {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.link-card {
+  aspect-ratio: 4 / 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.link-card h3 {
+  margin-top: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.quick-index {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-index a {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #141a2a;
+  text-decoration: none;
+}
+
+.quick-index a:hover {
+  background: #222b41;
+}
+
+@media (min-width: 1080px) {
+  .docs-layout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .docs-sidebar {
+    position: sticky;
+    top: 84px;
+  }
+
+  .docs-sidebar .card {
+    margin-bottom: 0;
+  }
+}
+
+pre {
+  margin: 0;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #2a3351;
+  background: #101523;
+  padding: 12px;
+}
+
+code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
+.tok-comment {
+  color: #7f8fb3;
+}
+
+.tok-string {
+  color: #9ee493;
+}
+
+.tok-kw {
+  color: #ff8dc7;
+  font-weight: 600;
+}
+
+.tok-num {
+  color: #7fd8ff;
+}
+
+.tok-fn {
+  color: #ffd37a;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px 8px;
+  vertical-align: top;
+}
+
+th {
+  color: #f4db97;
+}
+
+.field-table tbody td:first-child {
+  font-weight: 700;
+}
+
+.field-table tbody td:nth-child(2) {
+  color: #7fd8ff;
+  font-weight: 600;
+}
+
+ul {
+  margin-top: 8px;
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+  padding: 14px 0 26px;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 10px;
+  display: inline-block;
+}
+
+.ok {
+  color: #66db8f;
+  border: 1px solid #28583a;
+  background: #15291d;
+}
+
+.todo {
+  color: #ffd987;
+  border: 1px solid #5b4a1c;
+  background: #2a2415;
+}
+
+@media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+}

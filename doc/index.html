@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PudimServer Docs • Home</title>
+    <meta name="description" content="PudimServer documentation in HTML pages.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="container row between center">
+            <a class="brand" href="./index.html">🍮 PudimServer Docs</a>
+            <nav class="nav" aria-label="Main navigation">
+                <a href="./index.html">Home</a>
+                <a href="./getting-started.html">Getting Started</a>
+                <a href="./modules.html">Modules</a>
+                <a href="./examples.html">Examples</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container content">
+        <section class="hero card">
+            <h1>PudimServer Documentation</h1>
+            <p>
+                A Lua library to build simple, lightweight, and customizable HTTP servers,
+                with support for CORS, pipeline handlers, cache, dynamic routes, query parsing,
+                native HTTPS, cooperative concurrency, and hot reload without a file watcher.
+            </p>
+            <div class="chips">
+                <span>Lua 5.4+</span>
+                <span>LuaSocket</span>
+                <span>lua-cjson</span>
+                <span>loglua</span>
+                <span>luasec (optional)</span>
+            </div>
+        </section>
+
+        <section class="grid two">
+            <article class="card">
+                <h2>Installation</h2>
+                <pre><code>luarocks install PudimServer --local</code></pre>
+            </article>
+
+            <article class="card">
+                <h2>Basic server</h2>
+                <pre><code>local PudimServer = require("PudimServer")
+
+local server = PudimServer:Create{ Port = 8080 }
+
+server:Routes("/", function(req, res)
+    return res:response(200, "Hello World!")
+end)
+
+server:Run()</code></pre>
+            </article>
+        </section>
+
+        <section class="card">
+            <h2>Main features</h2>
+            <ul>
+                <li>Static and dynamic routing (<code>/users/:id</code>)</li>
+                <li>Query string parsing into <code>req.query</code></li>
+                <li>Handler pipeline with <code>next()</code></li>
+                <li>CORS with automatic preflight handling</li>
+                <li>In-memory cache with TTL</li>
+                <li>Native HTTPS with <code>luasec</code></li>
+                <li>Cooperative concurrency (coroutines)</li>
+                <li>Hot reload without watcher (<code>package.loaded</code> invalidation)</li>
+            </ul>
+        </section>
+
+        <section class="grid three">
+            <a class="card link-card" href="./getting-started.html">
+                <h3>Getting Started</h3>
+                <p>Set up and run your first server in 5 minutes.</p>
+            </a>
+            <a class="card link-card" href="./modules.html">
+                <h3>Modules</h3>
+                <p>API docs split by module with quick index.</p>
+            </a>
+            <a class="card link-card" href="./examples.html">
+                <h3>Examples</h3>
+                <p>Practical scenarios ready to run.</p>
+            </a>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>PudimServer v0.3.1 • HTML Documentation • <span id="year"></span></p>
+        </div>
+    </footer>
+
+    <script src="./main.js"></script>
+</body>
+</html>
