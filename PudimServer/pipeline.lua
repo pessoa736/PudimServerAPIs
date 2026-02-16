@@ -6,7 +6,7 @@ local utils = require("PudimServer.utils")
 
 --- interfaces
 
----@alias PipelineHandler fun(req: Request, res: HttpModuler, next: fun(): string?): string?
+---@alias PipelineHandler fun(req: Request, res: HttpModule, next: fun(): string?): string?
 
 ---@class PipelineEntry
 ---@field name string Nome do handler
@@ -63,8 +63,8 @@ end
 --- Each handler receives (req, res, next) and must call next() to continue.
 --- The finalHandler runs after all pipeline handlers complete.
 ---@param req Request The HTTP request object
----@param res HttpModuler The HTTP response builder
----@param finalHandler fun(req: Request, res: HttpModuler): string? The route handler
+---@param res HttpModule The HTTP response builder
+---@param finalHandler fun(req: Request, res: HttpModule): string? The route handler
 ---@return string? response The HTTP response string or nil
 function Pipeline:execute(req, res, finalHandler)
   local PL = log.inSection("Pipeline")

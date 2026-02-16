@@ -111,6 +111,8 @@ server:Run()
 | `version` | string | Versão do HTTP (ex: "HTTP/1.1") |
 | `headers` | table | Headers da requisição (chaves em lowercase) |
 | `body` | string | Corpo da requisição |
+| `query` | table<string, string\|string[]>? | Query string parseada |
+| `params` | table<string, string>? | Parâmetros de rota dinâmica |
 
 ### Objeto Response
 
@@ -290,6 +292,10 @@ Exemplos funcionais estão disponíveis no diretório [`examples/`](examples/):
 | [`cors_restricted_example.lua`](examples/cors_restricted_example.lua) | CORS com origens restritas e credentials |
 | [`pipeline_example.lua`](examples/pipeline_example.lua) | Logger, auth e header customizado no pipeline |
 | [`cache_example.lua`](examples/cache_example.lua) | Cache via pipeline e cache manual |
+| [`query_dynamic_example.lua`](examples/query_dynamic_example.lua) | Parsing de query string e parâmetros de rota dinâmica |
+| [`https_concurrency_example.lua`](examples/https_concurrency_example.lua) | HTTPS nativo (luasec) com concorrência cooperativa |
+| [`hot_reload_example.lua`](examples/hot_reload_example.lua) | Hot reload em desenvolvimento sem file watcher |
+| [`complete_featured_example.lua`](examples/complete_featured_example.lua) | Exemplo completo com CORS, pipeline, cache, query, rotas dinâmicas, hot reload e HTTPS opcional |
 
 Execute qualquer exemplo com:
 
@@ -305,18 +311,21 @@ lua ./examples/json_response_example.lua
 ### ✅ Implementado
 
 - [x] Sistema de rotas básico
-- [x] Parsing de requisições HTTP (method, path, headers, body)
+- [x] Parsing de requisições HTTP (method, path, headers, body, query, params)
 - [x] Respostas JSON automáticas (tables convertidas para JSON)
 - [x] Sistema de logs configurável
 - [x] CORS helpers (Cross-Origin Resource Sharing)
 - [x] Pipeline de request/response (middleware no nível HTTP)
 - [x] Cache de respostas em memória com TTL
+- [x] Rotas dinâmicas com parâmetros (`/users/:id`, `/posts/:slug`)
+- [x] Parsing automático de query strings (`?page=1&limit=10`)
+- [x] Mais códigos de status HTTP mapeados
+- [x] Multi-threading / concorrência (corrotinas cooperativas)
+- [x] Suporte HTTPS nativo (luasec)
+- [x] Hot reload em desenvolvimento (sem file watcher)
 
 ### 📋 Planejado
 
-- [ ] Rotas dinâmicas com parâmetros (`/users/:id`, `/posts/:slug`)
-- [ ] Parsing automático de query strings (`?page=1&limit=10`)
-- [ ] Mais códigos de status HTTP mapeados
 - [ ] Suporte a uploads de arquivos (multipart/form-data)
 - [ ] Servir arquivos estáticos (HTML, CSS, JS, imagens)
 - [ ] Rate limiting básico
@@ -324,10 +333,23 @@ lua ./examples/json_response_example.lua
 ### 🔮 Futuro (talvez)
 
 - [ ] Suporte a WebSockets
-- [ ] Multi-threading / concorrência
-- [ ] HTTPS nativo (sem precisar de wrapper externo)
-- [ ] Hot reload em desenvolvimento
-- [ ] CLI para criar projetos
+
+### Hot Reload (sem file watcher)
+
+Habilite o hot reload invalidando módulos Lua selecionados de `package.loaded` a cada requisição.
+
+```lua
+local server = PudimServer:Create{
+  Port = 8080,
+  HotReload = {
+    Enabled = true,
+    Modules = {"examples.hot_reload_message"},
+    Prefixes = {"app."}
+  }
+}
+```
+
+Use `Modules` para nomes exatos de módulo e `Prefixes` para invalidar grupos. Isso é apenas para desenvolvimento.
 
 ## Licença
 

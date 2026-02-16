@@ -25,7 +25,8 @@ dependencies = {
    "lua >= 5.4",
    "luasocket",
    "lua-cjson",
-   "loglua"
+   "loglua",
+   "busted",
 }
 
 build = {

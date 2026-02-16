@@ -29,6 +29,7 @@ local CacheConfigInter = utils:createInterface{
 ---@field _entries table<string, CacheEntry>
 ---@field _maxSize number
 ---@field _defaultTTL number
+---@field _size number Tamanho atual do cache
 local Cache = {}
 Cache.__index = Cache
 

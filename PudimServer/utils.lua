@@ -8,26 +8,28 @@
 ---@field __fields table<string, string|string[]|Interface> Campos da interface
 
 ---@class message
----@field old string|nil
+---@field old any Última mensagem do canal
 
----@class Utils: table
----@field mensagens message[] Cache de mensagens para loadMessageOnChange
+---@class Utils
+---@field mensagens table<any, message> Cache de mensagens para loadMessageOnChange
 ---@field __savedTypes Interface[] Interfaces salvas
----@field loadMessageOnChange fun(self: Utils, channel: any, msg: any, printerFunction?: function|table) Imprime mensagem se mudou
----@field checkFilesExist fun(self: Utils, file: string): boolean Verifica se arquivo existe
----@field getContentFile fun(self: Utils, file: string): string Lê conteúdo do arquivo
----@field writeFile fun(self: Utils, file: string, content: string) Escreve conteúdo no arquivo
----@field _matches fun(self: Utils, value: any, contract: string|string[]|Interface): boolean Verifica se valor corresponde ao contrato
----@field verifyTypes fun(self: Utils, value: any, contract: any, printerFunction?: function, _break?: boolean): boolean, string? Verifica tipos
----@field createInterface fun(self: Utils, fields: table, extends?: Interface): Interface Cria uma interface
----@field mkdir fun(self: Utils, path: string) Cria diretório
 
 
 ---------
 --- main
 
+---@class utils : Utils
+---@field loadMessageOnChange fun(self: utils, channel: any, msg: any, printerFunction?: function|table)
+---@field checkFilesExist fun(self: utils, file: string): boolean
+---@field getContentFile fun(self: utils, file: string): string
+---@field writeFile fun(self: utils, file: string, content: string)
+---@field _matches fun(self: utils, value: any, contract: string|string[]|Interface): boolean
+---@field verifyTypes fun(self: utils, value: any, contract: any, printerFunction?: function, _break?: boolean): boolean, string?
+---@field createInterface fun(self: utils, fields: table<string, string|string[]|Interface>, extends?: Interface): Interface
+---@field mkdir fun(self: utils, path: string)
+
 ---@diagnostic disable: missing-fields
----@type Utils
+---@type utils
 local utils = {} 
 
 
@@ -109,7 +111,6 @@ end
 ---@param _break? boolean Exit process on validation failure
 ---@return boolean valid True if value matches contract
 ---@return string? error Error message if invalid (only when printerFunction is nil)
----@type fun(self: table, value: any, contract: any, printFunction?: function, _break?: boolean): boolean, string?
 function utils:verifyTypes(value, contract, printerFunction, _break)
     if type(contract) ~= "table" or not contract.__IsInterface then
         if self:_matches(value, contract) then
@@ -139,13 +140,14 @@ function utils:verifyTypes(value, contract, printerFunction, _break)
 
     for field, expected in pairs(contract.__fields) do
         local val = value[field]
-        if val == nil then
-            return false, "'"..field.."' absent"
-        end
         if not self:_matches(val, expected) then
-            local msg = 
-                "'"..field.."' invalid. expected:"..tostring(expected)..
-                ", get "..type(val)
+            local msg
+            if val == nil then
+                msg = "'"..field.."' absent"
+            else
+                msg = "'"..field.."' invalid. expected:"..tostring(expected)..
+                    ", get "..type(val)
+            end
 
             if not printerFunction then
                 return false, msg

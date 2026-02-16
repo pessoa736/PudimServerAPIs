@@ -61,6 +61,11 @@ describe("http", function()
       assert.is_truthy(res:find("HTTP/1.1 404 Not Found"))
     end)
 
+    it("builds a 429 response with mapped status text", function()
+      local res = http:response(429, "Too many")
+      assert.is_truthy(res:find("HTTP/1.1 429 Too Many Requests"))
+    end)
+
     it("sets Content-Length header", function()
       local body = "test body"
       local res = http:response(200, body)

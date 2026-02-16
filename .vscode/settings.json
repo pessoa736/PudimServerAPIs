@@ -1,0 +1,8 @@
+{
+  "Lua.workspace.ignoreDir": [
+    "lua_modules",
+    "lua_modules/share",
+    "lua_modules/lib",
+    "spec"
+  ]
+}
