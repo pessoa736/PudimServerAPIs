@@ -13,7 +13,9 @@ local RequestInter = utils:createInterface({
   path = "string",
   version = "string",
   headers = "table",
-  body = "string"
+  body = "string",
+  query = {"table", "nil"},
+  params = {"table", "nil"}
 })
 
 
@@ -31,19 +33,22 @@ local ResponseParamsInter = utils:createInterface({
 ---@field version string Versão do HTTP
 ---@field headers table<string, string> Headers da requisição
 ---@field body string Corpo da requisição
+---@field query table<string, string|string[]>? Query string parsed
+---@field params table<string, string>? Parâmetros de rota dinâmica
 
 
 
----@class HttpModuler:metatable
----@field ParseRequest fun(self: HttpModuler, raw: string):Request
----@field response fun(self: HttpModuler, status: number, body: any, headers?:table ):string
+---@class HttpModule
+---@field ParseRequest fun(self: HttpModule, raw: string): Request
+---@field response fun(self: HttpModule, status: number, body: string|table, headers?: table<string, string>): string
+---@field __index HttpModule
 
 
 ---------
 --- main
 
 ---@diagnostic disable: missing-fields
----@type HttpModuler
+---@type HttpModule
 local http = {}
 http.__index = http
 
@@ -92,14 +97,52 @@ function http:ParseRequest(raw)
         i = i + 1
     end
     
-    ---@type Request
-    local req =  {
-        method = method,
-        path = path,
-        version = version,
-        headers = headers,
-        body = body
-    }
+        -- split path and query string
+        local pathOnly = path
+        local queryString
+        if path and path:find("%?") then
+            pathOnly, queryString = path:match("^([^?]+)%?(.*)$")
+        end
+
+        local function urlDecode(s)
+            if not s then return s end
+            s = s:gsub('+', ' ')
+            s = s:gsub('%%(%x%x)', function(h) return string.char(tonumber(h,16)) end)
+            return s
+        end
+
+        local function parseQuery(qs)
+            if not qs or qs == "" then return {} end
+            local out = {}
+            for pair in qs:gmatch("([^&]+)") do
+                local k,v = pair:match("([^=]+)=?(.*)")
+                if k then
+                    k = urlDecode(k)
+                    v = urlDecode(v)
+                    if out[k] == nil then
+                        out[k] = v
+                    else
+                        if type(out[k]) == 'table' then
+                            table.insert(out[k], v)
+                        else
+                            out[k] = { out[k], v }
+                        end
+                    end
+                end
+            end
+            return out
+        end
+
+        ---@type Request
+        local req =  {
+                method = method,
+                path = pathOnly or path,
+                version = version,
+                headers = headers,
+                body = body,
+                query = parseQuery(queryString),
+                params = {}
+        }
 
     utils:verifyTypes(req, RequestInter, RP.error, true)
 
@@ -129,6 +172,7 @@ function http:response(status, body, headers)
         msid = msid + 1
     end
 
+    ---@type table<string, any>
     local headers = headers or {}
     
     if type(body) == "table" then
@@ -142,9 +186,30 @@ function http:response(status, body, headers)
     headers["Content-Length"] = #body
 
     local statusText = {
+        [100] = "Continue",
+        [101] = "Switching Protocols",
+        [102] = "Processing",
         [200] = "OK",
+        [201] = "Created",
+        [202] = "Accepted",
+        [204] = "No Content",
+        [301] = "Moved Permanently",
+        [302] = "Found",
+        [304] = "Not Modified",
+        [400] = "Bad Request",
+        [401] = "Unauthorized",
+        [403] = "Forbidden",
         [404] = "Not Found",
-        [500] = "Internal Server Error"
+        [405] = "Method Not Allowed",
+        [409] = "Conflict",
+        [415] = "Unsupported Media Type",
+        [422] = "Unprocessable Entity",
+        [429] = "Too Many Requests",
+        [500] = "Internal Server Error",
+        [501] = "Not Implemented",
+        [502] = "Bad Gateway",
+        [503] = "Service Unavailable",
+        [504] = "Gateway Timeout"
     }
 
     local buffer = ("HTTP/1.1 %s %s \r\n"):format(status, statusText[status] or "")

@@ -43,9 +43,6 @@ local function toHeaderValue(value, default)
 end
 
 
----@param config? CorsConfig
----@return table corsHeaders Headers CORS resolvidos
----@return CorsConfig resolvedConfig Config com defaults aplicados
 --- Creates a resolved CORS configuration with defaults applied.
 ---@param config? CorsConfig Raw CORS configuration
 ---@return table resolvedConfig Config with all defaults filled in

@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-PudimServer is a Lua HTTP server library distributed via LuaRocks. It provides a routing system, CORS support, a request/response pipeline (middleware chain), and in-memory caching. The library includes a built-in help system accessible via `PudimServer.help()`.
+PudimServer is a Lua HTTP server library distributed via LuaRocks. It provides a routing system, CORS support, a request/response pipeline (middleware chain), and in-memory caching.
 
 ## Dependencies & Runtime
 
-- **Lua >= 5.4** (`.luarc.json` targets Lua 5.5)
+- **Lua >= 5.4** (`.luarc.json` targets Lua 5.4)
 - **LuaRocks** for package management
 - Core deps: `luasocket`, `lua-cjson`, `loglua`, `luasec` (optional, for SSL)
 
@@ -53,6 +53,9 @@ Creates a new server instance bound to an address and port.
 | `config.Address` | `string?` | `"localhost"` | Bind address (`"localhost"`, `"127.0.0.1"`, `"0.0.0.0"`) |
 | `config.Port` | `number?` | `8080` | Port number |
 | `config.Middlewares` | `table?` | `{}` | Initial socket-level middlewares |
+| `config.Https` | `table?` | `nil` | Native HTTPS config (`luasec`) |
+| `config.Concurrency` | `table?` | `nil` | Cooperative concurrency config |
+| `config.HotReload` | `table?` | `nil` | Dev hot reload without file watcher |
 
 ```lua
 local server = PudimServer:Create{
@@ -132,13 +135,17 @@ Removes a socket middleware by name.
 
 Starts the server (blocks). Place all setup before calling.
 
-#### `PudimServer.help(topic?)`
+#### `Server:EnableHotReload(config?)`
 
-Shows interactive documentation. Topics: `"create"`, `"routes"`, `"run"`, `"response"`, `"cors"`, `"pipeline"`, `"cache"`, `"middlewares"`, `"types"`, `"modules"`.
+Enables development hot reload **without file watcher** by invalidating selected modules in `package.loaded` before each request.
 
-#### `PudimServer.version() → string`
-
-Returns the version string (e.g. `"0.2.0"`).
+```lua
+server:EnableHotReload{
+  Enabled = true,
+  Modules = {"examples.hot_reload_message"},
+  Prefixes = {"app."}
+}
+```
 
 ### PudimServer.http (http.lua) — HTTP Parsing & Response
 
@@ -174,6 +181,8 @@ http:response(200, "<h1>Hi</h1>", {["Content-Type"] = "text/html"})
 | `version` | `string` | HTTP version (e.g. "HTTP/1.1") |
 | `headers` | `table<string,string>` | Request headers (keys are lowercase) |
 | `body` | `string` | Request body |
+| `query` | `table<string, string\|string[]>?` | Parsed query string |
+| `params` | `table<string, string>?` | Dynamic route params |
 
 ### PudimServer.cors (cors.lua) — CORS Support
 
@@ -301,24 +310,6 @@ Prints message only when changed from last call on same channel.
 
 Checks if TCP port is open.
 
-### PudimServer.help (help.lua) — Help System
-
-#### `help.show(topic?)`
-
-Shows help documentation. Without args shows overview; with topic shows details.
-
-#### `help.welcome() → boolean`
-
-Shows first-run welcome message. Creates `.pudimserver_initialized` flag file. Returns true if first run.
-
-#### `help.version() → string`
-
-Returns version string.
-
-#### `help.topics() → string[]`
-
-Returns list of available help topic names.
-
 ## Architecture
 
 ### Module Dependency Graph
@@ -327,7 +318,6 @@ Returns list of available help topic names.
 init.lua ──→ http.lua
          ──→ cors.lua ──→ http.lua
          ──→ pipeline.lua
-         ──→ help.lua
          ──→ utils.lua
          ──→ socket (luasocket)
 
@@ -345,12 +335,13 @@ ServerChecks.lua ──→ utils.lua
 
 1. `socket:accept()` → raw TCP client
 2. Socket middlewares run sequentially (`SetMiddlewares`)
-3. `client:receive()` → raw HTTP data
-4. `http:ParseRequest(raw)` → `Request` object
-5. CORS preflight check → 204 if OPTIONS
-6. `pipeline:execute(req, res, routeHandler)` → runs pipeline handlers, then route
-7. CORS header injection into response
-8. `client:send(response)` → send to client
+3. Optional hot reload invalidates configured modules (`EnableHotReload`/`config.HotReload`)
+4. `client:receive()` → raw HTTP data
+5. `http:ParseRequest(raw)` → `Request` object
+6. CORS preflight check → 204 if OPTIONS
+7. `pipeline:execute(req, res, routeHandler)` → runs pipeline handlers, then route
+8. CORS header injection into response
+9. `client:send(response)` → send to client
 
 ### Runtime Type System
 
@@ -380,6 +371,7 @@ end
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - **PR target:** Always target the `dev` branch
 - **LuaDoc annotations:** Use `---@class`, `---@field`, `---@type`, `---@param`, `---@return` annotations
+- **LuaDoc concrete tables:** when declaring methods as `function myTable:method(...)`, declare `---@class myTable` and type the table as `---@type myTable` to avoid “Fields cannot be injected...” diagnostics
 - **Comments:** Portuguese or English are both acceptable
 - **Type validation:** All public API functions must validate inputs with `utils:verifyTypes`
 - **Logging:** Use `log.inSection("name")` for scoped loggers
@@ -393,7 +385,6 @@ PudimServer.utils        → PudimServer/utils.lua
 PudimServer.cors         → PudimServer/cors.lua
 PudimServer.pipeline     → PudimServer/pipeline.lua
 PudimServer.cache        → PudimServer/cache.lua
-PudimServer.help         → PudimServer/help.lua
 PudimServer.ServerChecks → PudimServer/ServerChecks.lua
 ```
 
@@ -444,11 +435,28 @@ end)
 server:Run()
 ```
 
-### Getting help
+### Adding Hot Reload (no file watcher)
 
 ```lua
 local PudimServer = require("PudimServer")
-PudimServer.help()           -- overview
-PudimServer.help("cors")     -- CORS topic
-PudimServer.help("pipeline") -- Pipeline topic
+
+local server = PudimServer:Create{
+  Port = 8080,
+  HotReload = {
+    Enabled = true,
+    Modules = {"examples.hot_reload_message"},
+    Prefixes = {"app."}
+  }
+}
+
+server:Routes("/reload", function(req, res)
+  local messageProvider = require("examples.hot_reload_message")
+  return res:response(200, messageProvider.get())
+end)
+
+server:Run()
 ```
+
+### Notes
+
+`PudimServer.help` and `PudimServer.version()` are not available in the current codebase.
