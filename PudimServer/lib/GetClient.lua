@@ -1,4 +1,4 @@
-local socket = require "socket"
+local socket<const> = require "socket"
 
 
 ---@param ServerRun table|userdata Socket do servidor
@@ -9,7 +9,7 @@ local socket = require "socket"
 ---@return string message Mensagem de status
 return function (ServerRun, Middlewares, httpsConfig)
     local responseObject, responseCheck, responseMessage 
-    local client, acceptErr = ServerRun:accept()
+    local client, acceptErr<const> = ServerRun:accept()
 
     if not client then -- if not found
         responseCheck = false

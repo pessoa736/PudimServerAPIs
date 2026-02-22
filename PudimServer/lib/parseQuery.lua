@@ -1,4 +1,4 @@
-local urlDecode = require "PudimServer.lib.urlDecode"
+local urlDecode<const> = require "PudimServer.lib.urlDecode"
 
 return function (qs)
     if not qs or qs == "" then return {} end

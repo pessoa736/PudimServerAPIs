@@ -1,6 +1,6 @@
-local socket = require("socket")
-local utils = require("PudimServer.utils")
-local debugPrint = require("PudimServer.lib.debugPrint")
+local socket<const> = require("socket")
+local utils<const> = require("PudimServer.utils")
+local debugPrint<const> = require("PudimServer.lib.debugPrint")
 
 
 local PortCheckParamsInter = utils:createInterface({

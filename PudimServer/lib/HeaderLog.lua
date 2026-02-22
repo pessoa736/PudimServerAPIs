@@ -1,4 +1,4 @@
-local utils = require "PudimServer.utils"
+local utils<const> = require "PudimServer.utils"
 
 ---@param server Server
 return function (server)
