@@ -2,6 +2,7 @@ local http          = require "PudimServer.http"
 local debugPrint    = require "PudimServer.lib.debugPrint"
 local receiveLine   = require "PudimServer.lib.receiveLine"
 local cors          = require "PudimServer.cors"
+local errorPrint    = require "PudimServer.lib.errorPrint"
 
 ---@param client any
 ---@param routes any
@@ -22,7 +23,7 @@ return function(client, routes, corsConfig, pipeline, yieldFn)
   
     local data, err = receiveLine(client, yieldFn)
     if not data then 
-        error("receive data error "..tostring(err))
+        errorPrint("receive data error "..tostring(err))
         return nil
     end
 
@@ -31,7 +32,7 @@ return function(client, routes, corsConfig, pipeline, yieldFn)
         local line, lineErr = receiveLine(client, yieldFn)
         if not line then
         if lineErr and lineErr ~= "closed" then
-            error("receive header error " .. tostring(lineErr))
+            errorPrint("receive header error " .. tostring(lineErr))
         end
             break
         end

@@ -42,24 +42,24 @@ server:UseHandler{
 server:Routes("/api/time", function(req, res)
   if req.method == "GET" then
     print("  -> handler executed (not from cache)")
-    return res:response(200, {
+    return res:Response(200, {
       timestamp = os.time(),
       msg = "If this timestamp stays the same, the response is cached!"
     })
   end
-  return res:response(405, { error = "Method not allowed" })
+  return res:Response(405, { error = "Method not allowed" })
 end)
 
 
 -- POST requests are never cached
 server:Routes("/api/data", function(req, res)
   if req.method == "POST" then
-    return res:response(200, {
+    return res:Response(200, {
       msg = "POST is never cached",
       timestamp = os.time()
     })
   end
-  return res:response(405, { error = "Method not allowed" })
+  return res:Response(405, { error = "Method not allowed" })
 end)
 
 
@@ -73,7 +73,7 @@ server:Routes("/api/cached-manual", function(req, res)
       return cached
     end
 
-    local response = res:response(200, {
+    local response = res:Response(200, {
       msg = "Manually cached for 30 seconds",
       timestamp = os.time()
     })
@@ -85,10 +85,10 @@ server:Routes("/api/cached-manual", function(req, res)
   -- Invalidate cache on DELETE
   if req.method == "DELETE" then
     cache:invalidate("manual:greeting")
-    return res:response(200, { msg = "Cache invalidated!" })
+    return res:Response(200, { msg = "Cache invalidated!" })
   end
 
-  return res:response(405, { error = "Method not allowed" })
+  return res:Response(405, { error = "Method not allowed" })
 end)
 
 

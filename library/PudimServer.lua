@@ -54,6 +54,11 @@ function PudimServer.Run(self) end
 function PudimServer.SetMiddleware(self, Middleware)end
 
 
+---@param RoutePath string
+---@param filePath string
+---@param headers table<string, string>
+function PudimServer:RoutesAFile(RoutePath, filePath, headers) end
+
 
 --- Removes a socket-level middleware by name.
 ---@param self PudimServer

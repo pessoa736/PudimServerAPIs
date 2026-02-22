@@ -45,8 +45,8 @@ local ServerInter = utils:createInterface({
       Routes = "function",
       ServerSocket = {"table", "userdata"},
       _routes = "table",
-      SetMiddlewares = "function",
-      RemoveMiddlewares = "function",
+      SetMiddleware = "function",
+      RemoveMiddleware = "function",
       UseHandler = "function",
       RemoveHandler = "function",
       EnableCors = "function",
@@ -134,6 +134,18 @@ function PudimServer:Routes(path, handler)
   end
 
   self._routes[#self._routes+1] = entry
+end
+
+
+function PudimServer:RoutesAFile(RoutePath, filePath, headers) 
+    self:Routes(RoutePath, function (req, res)
+      if req.method == "GET" then
+        local content = utils:getContentFile(filePath)
+        return res:Response(200, content, headers)
+      end
+
+      return res:Response(405, "method not allowed")
+    end)
 end
 
 
@@ -300,7 +312,7 @@ end
 --- Starts the server and enters an infinite accept loop.
 --- Blocks the current thread. Place all setup (Routes, EnableCors, UseHandler) before calling.
 function PudimServer:Run()
-  utils:verifyTypes(self, ServerInter, (log.inSection("checktypes")).error, true)
+  utils:verifyTypes(self, ServerInter, print, true)
 
   local server = self.ServerSocket 
   local concurrencyEnabled = self._concurrencyConfig and self._concurrencyConfig.Enabled

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Lua WASM</title>
+</head>
+<body>
+    <script>
+        var Module = {
+            onRuntimeInitialized: function() {
+                console.log("Lua WASM carregado!")
+
+                const L = Module._luaL_newstate()
+                Module._luaL_openlibs(L)
+
+                const code = `print("Hello from Lua!")`
+                const codePtr = Module.allocateUTF8(code)
+
+                Module._luaL_loadstring(L, codePtr)
+                Module._lua_pcallk(L, 0, -1, 0, 0, 0)
+                Module._lua_close(L)
+            }
+        }
+    </script>
+    <script src="/lua.js"></script>
+</body>
+</html>
