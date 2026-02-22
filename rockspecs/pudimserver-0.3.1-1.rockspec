@@ -1,9 +1,9 @@
 rockspec_format = "3.0"
-package = "PudimServer"
+package = "pudimserver"
 version = "0.3.1-1"
 
 source = {
-   url = "git://github.com/pessoa736/PudimServerAPIs.git",
+   url = "https://github.com/pessoa736/PudimServerAPIs.git",
    tag = "v0.3.1"
 }
 
@@ -15,7 +15,7 @@ description = {
       accept HTTP requests, parse them, dispatch to a handler, and 
       return a response.
    ]],
-   homepage = "https://github.com/pessoa736/PudimServerAPIs",
+   homepage = "https://pessoa736.github.io/PudimServerAPIs/",
    license = "MIT",
    maintainer = "Davi <pessoa736@github.com>",
    labels = { "http", "server", "web", "routing", "api" }
@@ -40,5 +40,5 @@ build = {
       ["PudimServer.pipeline"] = "PudimServer/pipeline.lua",
       ["PudimServer.cache"] = "PudimServer/cache.lua"
    },
-   copy_directories = {}
+   copy_directories = { "library" }
 }

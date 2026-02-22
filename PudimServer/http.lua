@@ -1,9 +1,10 @@
 
 if not _G.log then _G.log = require("loglua") end
 if not _G.cjson then _G.cjson = require("cjson.safe") end
-local utils = require("PudimServer.utils")
+local utils         = require("PudimServer.utils")
+local debugPrint    = require "PudimServer.lib.debugPrint"
+local parseQuery    = require "PudimServer.lib.parseQuery"
 
----@diagnostic disable: duplicate-doc-field
 
 --- interfaces
 
@@ -27,57 +28,27 @@ local ResponseParamsInter = utils:createInterface({
 
 
 
----@class Request
----@field method string Método HTTP (GET, POST, etc)
----@field path string Caminho da requisição
----@field version string Versão do HTTP
----@field headers table<string, string> Headers da requisição
----@field body string Corpo da requisição
----@field query table<string, string|string[]>? Query string parsed
----@field params table<string, string>? Parâmetros de rota dinâmica
-
-
-
----@class HttpModule
----@field ParseRequest fun(self: HttpModule, raw: string): Request
----@field response fun(self: HttpModule, status: number, body: string|table, headers?: table<string, string>): string
----@field __index HttpModule
-
-
 ---------
 --- main
-
----@diagnostic disable: missing-fields
----@type HttpModule
-local http = {}
-http.__index = http
+---@type httpParser
+local httpParser = {}
+httpParser.__index = httpParser
 
 
---- Parses a raw HTTP request string into a structured Request object.
----@param raw string Raw HTTP request data
----@return Request req Parsed request with method, path, version, headers, body
-function http:ParseRequest(raw)
-    local RP = log.inSection("Response Parse")
-    
-    utils:verifyTypes(raw,"string",RP.error, true)
-    
-    local msid = 0 
-    local function _msg(msg)
-        utils:loadMessageOnChange("httpParse" .. msid, msg, RP.debug)
-        msid = msid + 1
-    end
+function httpParser:Request(raw)
+    utils:verifyTypes(raw,"string", print, true)
     
     local lines = {}
 
-    _msg("separating lines...")
+    print("separating lines...")
     for line in raw:gmatch("[^\r\n]+") do
         table.insert(lines, line)
     end
 
-    _msg("lines separated")
+    print("lines separated")
 
     local method, path, version = lines[1]:match("(%S+)%s+(%S+)%s+(%S+)")
-    _msg(("get the method: %s; path: %s and version: %s."):format(method, path, version))
+    print(("get the method: %s; path: %s and version: %s."):format(method, path, version))
 
     local headers = {}
     local body = ""
@@ -97,81 +68,43 @@ function http:ParseRequest(raw)
         i = i + 1
     end
     
-        -- split path and query string
-        local pathOnly = path
-        local queryString
-        if path and path:find("%?") then
-            pathOnly, queryString = path:match("^([^?]+)%?(.*)$")
-        end
+    -- split path and query string
+    local pathOnly = path
+    local queryString
+    if path and path:find("%?") then
+        pathOnly, queryString = path:match("^([^?]+)%?(.*)$")
+    end
 
-        local function urlDecode(s)
-            if not s then return s end
-            s = s:gsub('+', ' ')
-            s = s:gsub('%%(%x%x)', function(h) return string.char(tonumber(h,16)) end)
-            return s
-        end
+    
 
-        local function parseQuery(qs)
-            if not qs or qs == "" then return {} end
-            local out = {}
-            for pair in qs:gmatch("([^&]+)") do
-                local k,v = pair:match("([^=]+)=?(.*)")
-                if k then
-                    k = urlDecode(k)
-                    v = urlDecode(v)
-                    if out[k] == nil then
-                        out[k] = v
-                    else
-                        if type(out[k]) == 'table' then
-                            table.insert(out[k], v)
-                        else
-                            out[k] = { out[k], v }
-                        end
-                    end
-                end
-            end
-            return out
-        end
+    ---@type Request
+    local req =  {
+            method = method,
+            path = pathOnly or path,
+            version = version,
+            headers = headers,
+            body = body,
+            query = parseQuery(queryString),
+            params = {}
+    }
 
-        ---@type Request
-        local req =  {
-                method = method,
-                path = pathOnly or path,
-                version = version,
-                headers = headers,
-                body = body,
-                query = parseQuery(queryString),
-                params = {}
-        }
+    utils:verifyTypes(req, RequestInter, print, true)
 
-    utils:verifyTypes(req, RequestInter, RP.error, true)
-
-    _msg("request: "..tostring(cjson.encode(req)))
+    print("request: "..tostring(cjson.encode(req)))
     return req
 end
 
---- Builds an HTTP response string.
---- Tables passed as body are automatically encoded to JSON with Content-Type application/json.
----@param status number HTTP status code (200, 404, 500, etc)
----@param body string|table Response body (tables auto-encode to JSON)
----@param headers? table<string, string> Custom response headers
----@return string response Raw HTTP response string ready to send
-function http:response(status, body, headers)
-    local AR = log.inSection("API Request")
+
+function httpParser:Response(status, body, headers)
     
     utils:verifyTypes(
         {status = status, body = body or "", headers = headers},
         ResponseParamsInter,
-        AR.error,
+        print,
         true
     )
     
-    local msid = 0 
-    local function _msg(msg)
-        utils:loadMessageOnChange("httpRequest" .. msid, msg, AR.debug)
-        msid = msid + 1
-    end
-
+   
     ---@type table<string, any>
     local headers = headers or {}
     
@@ -220,8 +153,8 @@ function http:response(status, body, headers)
 
     buffer = buffer .. "\r\n" .. body
     
-    _msg("Request: "..buffer)
+    debugPrint("Request: "..buffer)
     return buffer
 end
 
-return http
+return httpParser
