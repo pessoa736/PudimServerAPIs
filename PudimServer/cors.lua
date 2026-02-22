@@ -97,7 +97,7 @@ function cors.preflightResponse(config)
   local http = require("PudimServer.http")
   local headers = cors.buildHeaders(config)
   headers["Content-Length"] = "0"
-  return http:response(204, "", headers)
+  return http:Response(204, "", headers)
 end
 
 

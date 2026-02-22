@@ -11,11 +11,11 @@ local escapeSegment           = require "PudimServer.lib.escapeSegment"
 local handlerRequest          = require "PudimServer.lib.handlerRequest"
 local SendResponse            = require "PudimServer.lib.sendResponse"
 
-local socket    = require("socket")  
-local http      = require("PudimServer.http")
-local utils     = require("PudimServer.utils")
-local cors      = require("PudimServer.cors")
-local Pipeline  = require("PudimServer.pipeline")
+local socket      = require("socket")  
+local httpParser  = require("PudimServer.http")
+local utils       = require("PudimServer.utils")
+local cors        = require("PudimServer.cors")
+local Pipeline    = require("PudimServer.pipeline")
 
 
 
@@ -275,14 +275,6 @@ end
 
 
 
-
-
-
-
-
---- Adds a socket-level middleware that transforms the client connection.
---- Middlewares run on the raw TCP socket before HTTP parsing.
----@param Mid Middlewares Middleware with name and Handler function(client) → client
 function PudimServer:SetMiddleware(Mid)
   local  SML = log.inSection("set Middleware log")
 
@@ -292,10 +284,6 @@ function PudimServer:SetMiddleware(Mid)
 end
 
 
---- Removes a socket-level middleware by name.
----@diagnostic disable: redundant-return-value
----@param name string Name of the middleware to remove
----@return boolean removed True if middleware was found and removed
 function PudimServer:RemoveMiddleware(name)
   for i = #self.Middlewares, 1, -1 do
     if self.Middlewares[i].name == name then

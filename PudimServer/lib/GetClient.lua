@@ -81,5 +81,6 @@ return function (ServerRun, Middlewares, httpsConfig)
   responseObject, responseCheck, responseMessage = client, true, "Get Client"
   
   ::continue::
+  print(responseObject, responseCheck, responseMessage)
   return responseObject, responseCheck, responseMessage
 end

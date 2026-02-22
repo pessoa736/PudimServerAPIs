@@ -39,7 +39,7 @@ function  PudimServer.Create(lib, config) end
 
 ---@param self PudimServer 
 ---@param path string
----@param handler fun(Request: Request, Response: HttpModule):string?
+---@param handler fun(Request: Request, Response: httpParser):string?
 function PudimServer.Routes(self, path, handler) end
 
 
@@ -47,14 +47,18 @@ function PudimServer.Routes(self, path, handler) end
 function PudimServer.Run(self) end
 
 
+--- Adds a socket-level middleware that transforms the client connection.
+--- Middlewares run on the raw TCP socket before HTTP parsing.
 ---@param self PudimServer
----@param Middleware Middlewares
+---@param Middleware Middlewares Middleware with name and Handler function(client) → client
 function PudimServer.SetMiddleware(self, Middleware)end
 
 
+
+--- Removes a socket-level middleware by name.
 ---@param self PudimServer
----@param name string
----@return boolean check if Middleware is removed
+---@param name string Name of the middleware to remove
+---@return boolean removed True if middleware was found and removed
 function PudimServer.RemoveMiddleware(self, name) end
 
 

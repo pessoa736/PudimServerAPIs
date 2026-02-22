@@ -35,7 +35,6 @@ build = {
       ["PudimServer"] = "PudimServer/init.lua",
       ["PudimServer.http"] = "PudimServer/http.lua",
       ["PudimServer.utils"] = "PudimServer/utils.lua",
-      ["PudimServer.ServerChecks"] = "PudimServer/ServerChecks.lua",
       ["PudimServer.cors"] = "PudimServer/cors.lua",
       ["PudimServer.pipeline"] = "PudimServer/pipeline.lua",
       ["PudimServer.cache"] = "PudimServer/cache.lua"
