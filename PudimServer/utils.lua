@@ -67,7 +67,7 @@ end
 ---@return string content File contents
 function utils:getContentFile(file)
     local f<close> = assert(io.open(file, "r"), "file not exist")
-    local content = f:read("*a")
+    local content<const> = f:read("*a")
     return content
 end
 
